@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { SimpleHeader } from './Header';
 import SummaryCard from './SummaryCard';
 import { useArticles } from '../hooks/useDatabase';
@@ -131,25 +132,36 @@ export default function ArticleView({ article, onClose }) {
     ? estimateReadingTime(article.content)
     : null;
 
-  // Remove duplicate images from content if we're showing the thumbnail
+  // Sanitize and clean content - removes XSS vectors and duplicate images
   const getCleanContent = () => {
     const content = article.content || article.description || '';
-    if (!article.thumbnail || !content) return content;
+    if (!content) return '';
 
-    // Create a temporary element to parse HTML
+    // Sanitize HTML to prevent XSS attacks
+    const sanitized = DOMPurify.sanitize(content, {
+      ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li',
+                     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code',
+                     'img', 'figure', 'figcaption', 'div', 'span'],
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel'],
+      ADD_ATTR: ['target'], // Allow target attribute for links
+      FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'input', 'button'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
+    });
+
+    if (!article.thumbnail) return sanitized;
+
+    // Create a temporary element to remove duplicate thumbnail
     const temp = document.createElement('div');
-    temp.innerHTML = content;
+    temp.innerHTML = sanitized;
 
     // Remove the first image if it exists (likely duplicate of thumbnail)
     const firstImg = temp.querySelector('img');
     if (firstImg) {
-      // Check if it's similar to thumbnail or just remove first image
       const imgSrc = firstImg.src || firstImg.getAttribute('src') || '';
       if (imgSrc === article.thumbnail ||
           imgSrc.includes(article.thumbnail?.split('/').pop()?.split('?')[0] || 'NOMATCH')) {
         firstImg.remove();
       } else {
-        // Remove first image anyway to avoid duplication
         firstImg.remove();
       }
     }

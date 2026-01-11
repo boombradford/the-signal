@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useFeedSync } from '../hooks/useFeedSync';
 import { useCategories } from '../hooks/useDatabase';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // Popular feed suggestions with SVG icons
 const SUGGESTED_FEEDS = [
@@ -52,6 +53,7 @@ export default function AddFeedSheet({ onClose }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  const focusTrapRef = useFocusTrap(true);
   const { subscribeFeed } = useFeedSync();
   const { categories } = useCategories();
 
@@ -102,6 +104,7 @@ export default function AddFeedSheet({ onClose }) {
 
       {/* Sheet */}
       <motion.div
+        ref={focusTrapRef}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -110,6 +113,7 @@ export default function AddFeedSheet({ onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-feed-title"
+        tabIndex={-1}
       >
         <div className="ios-sheet-handle" />
 

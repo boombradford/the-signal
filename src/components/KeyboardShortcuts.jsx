@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 const shortcuts = [
   { keys: ['Esc'], description: 'Close article view' },
@@ -11,6 +12,8 @@ const shortcuts = [
 ];
 
 export default function KeyboardShortcuts({ isOpen, onClose }) {
+  const focusTrapRef = useFocusTrap(isOpen);
+
   // Close on escape
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -52,6 +55,7 @@ export default function KeyboardShortcuts({ isOpen, onClose }) {
 
           {/* Modal */}
           <motion.div
+            ref={focusTrapRef}
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -60,6 +64,7 @@ export default function KeyboardShortcuts({ isOpen, onClose }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="shortcuts-title"
+            tabIndex={-1}
           >
             <div className="bg-[var(--color-grouped-background)] rounded-2xl shadow-2xl overflow-hidden">
               {/* Header */}

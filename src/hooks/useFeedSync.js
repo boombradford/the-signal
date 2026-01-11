@@ -58,16 +58,24 @@ export function useFeedSync() {
     }
   }, [feeds, addArticles, updateFeed]);
 
-  // Sync all feeds
+  // Sync all feeds in parallel with concurrency limit
   const syncAllFeeds = useCallback(async () => {
     setSyncing(true);
     setError(null);
 
+    const CONCURRENCY_LIMIT = 5;
     const results = [];
 
-    for (const feed of feeds) {
-      const result = await syncFeed(feed.id);
-      results.push({ feedId: feed.id, ...result });
+    // Process feeds in batches
+    for (let i = 0; i < feeds.length; i += CONCURRENCY_LIMIT) {
+      const batch = feeds.slice(i, i + CONCURRENCY_LIMIT);
+      const batchResults = await Promise.all(
+        batch.map(async (feed) => {
+          const result = await syncFeed(feed.id);
+          return { feedId: feed.id, ...result };
+        })
+      );
+      results.push(...batchResults);
     }
 
     setSyncing(false);

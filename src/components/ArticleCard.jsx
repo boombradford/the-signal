@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { formatRelativeTime } from '../utils/rss';
 
@@ -39,7 +40,23 @@ function estimateReadTime(content) {
   return minutes < 1 ? '< 1 min' : `${minutes} min`;
 }
 
-export default function ArticleCard({ article, feedTitle, onClick }) {
+// Highlight matching search terms
+function highlightText(text, query) {
+  if (!query || !text) return text;
+  const terms = query.toLowerCase().trim().split(/\s+/);
+  const regex = new RegExp(`(${terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  const parts = text.split(regex);
+
+  return parts.map((part, i) =>
+    terms.some(t => part.toLowerCase() === t) ? (
+      <mark key={i} className="bg-[var(--color-warning)]/30 text-inherit rounded-sm px-0.5">
+        {part}
+      </mark>
+    ) : part
+  );
+}
+
+const ArticleCard = memo(function ArticleCard({ article, feedTitle, onClick, searchQuery }) {
   const isRead = article.isRead;
   const hasSummary = article.summaryStatus === 'completed';
   const readTime = estimateReadTime(article.content || article.description);
@@ -86,13 +103,13 @@ export default function ArticleCard({ article, feedTitle, onClick }) {
               isRead ? 'text-label-secondary' : 'text-label'
             }`}
           >
-            {article.title}
+            {searchQuery ? highlightText(article.title, searchQuery) : article.title}
           </h3>
 
           {/* Description */}
           {article.description && (
             <p className="text-[15px] text-label-secondary leading-relaxed line-clamp-2">
-              {article.description}
+              {searchQuery ? highlightText(article.description, searchQuery) : article.description}
             </p>
           )}
 
@@ -154,4 +171,6 @@ export default function ArticleCard({ article, feedTitle, onClick }) {
       </div>
     </motion.article>
   );
-}
+});
+
+export default ArticleCard;

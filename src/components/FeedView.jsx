@@ -61,8 +61,8 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
     feedTitle: feeds.find(f => f.id === article.feedId)?.title
   }));
 
-  // Search functionality
-  const { query, setQuery, clearSearch, filteredArticles, isSearching } = useSearch(articlesWithFeedTitles);
+  // Search functionality with debouncing
+  const { query, setQuery, clearSearch, filteredArticles, isSearching, isDebouncing } = useSearch(articlesWithFeedTitles);
 
   // Pull to refresh
   const handleRefresh = useCallback(async () => {
@@ -222,13 +222,27 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
           </motion.div>
         )}
 
+        {/* Screen reader announcements */}
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {isSearching && !isDebouncing && (
+            `${filteredArticles.length} result${filteredArticles.length !== 1 ? 's' : ''} found`
+          )}
+          {refreshing && 'Updating feeds'}
+          {syncing && 'Syncing feeds'}
+        </div>
+
         {feeds.length > 0 && filteredArticles.length > 0 && (
           <div className="px-4 pb-4">
             {/* Search result count */}
             {isSearching && (
-              <p className="text-[13px] text-label-secondary mb-3">
-                {filteredArticles.length} result{filteredArticles.length !== 1 ? 's' : ''} for "{query}"
-              </p>
+              <div className="flex items-center gap-2 mb-3">
+                <p className="text-[13px] text-label-secondary">
+                  {filteredArticles.length} result{filteredArticles.length !== 1 ? 's' : ''} for "{query}"
+                </p>
+                {isDebouncing && (
+                  <span className="text-[12px] text-label-tertiary animate-pulse">searching...</span>
+                )}
+              </div>
             )}
 
             <ul className="space-y-3" aria-label="Articles">
