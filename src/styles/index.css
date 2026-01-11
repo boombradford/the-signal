@@ -584,6 +584,45 @@ body {
     white-space: nowrap;
     border: 0;
   }
+
+  /* Summary Content Typography */
+  .summary-content {
+    font-family: 'Outfit', system-ui, sans-serif;
+    line-height: 1.65;
+    letter-spacing: -0.01em;
+  }
+
+  .summary-content p {
+    margin-bottom: 0;
+  }
+
+  .summary-content strong {
+    font-weight: 600;
+    color: var(--color-label);
+  }
+
+  .summary-content em {
+    font-style: italic;
+  }
+
+  .summary-content ul {
+    margin: 0;
+    padding: 0;
+  }
+
+  .summary-content li {
+    line-height: 1.5;
+  }
+
+  /* First letter styling for summaries */
+  .summary-content > p:first-child::first-letter {
+    font-size: 1.4em;
+    font-weight: 600;
+    color: var(--color-info);
+    float: left;
+    line-height: 1;
+    padding-right: 0.1em;
+  }
 }
 
 /* Utility Classes */

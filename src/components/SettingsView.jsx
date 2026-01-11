@@ -15,12 +15,21 @@ export default function SettingsView() {
   const [apiKeyStatus, setApiKeyStatus] = useState(null); // 'valid', 'invalid', 'checking'
   const [showApiKey, setShowApiKey] = useState(false);
 
+  // ElevenLabs for audio summaries
+  const [elevenLabsKey, setElevenLabsKey] = useState('');
+  const [elevenLabsStatus, setElevenLabsStatus] = useState(null);
+  const [showElevenLabsKey, setShowElevenLabsKey] = useState(false);
+
   useEffect(() => {
     if (settings.claudeApiKey) {
       setApiKey(settings.claudeApiKey);
       setApiKeyStatus('valid');
     }
-  }, [settings.claudeApiKey]);
+    if (settings.elevenLabsApiKey) {
+      setElevenLabsKey(settings.elevenLabsApiKey);
+      setElevenLabsStatus('valid');
+    }
+  }, [settings.claudeApiKey, settings.elevenLabsApiKey]);
 
   const handleApiKeySave = async () => {
     if (!apiKey.trim()) {
@@ -38,6 +47,32 @@ export default function SettingsView() {
       setApiKeyStatus('valid');
     } else {
       setApiKeyStatus('invalid');
+    }
+  };
+
+  const handleElevenLabsSave = async () => {
+    if (!elevenLabsKey.trim()) {
+      await updateSetting('elevenLabsApiKey', '');
+      setElevenLabsStatus(null);
+      return;
+    }
+
+    setElevenLabsStatus('checking');
+
+    // Validate ElevenLabs API key by fetching voices
+    try {
+      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': elevenLabsKey.trim() }
+      });
+
+      if (response.ok) {
+        await updateSetting('elevenLabsApiKey', elevenLabsKey.trim());
+        setElevenLabsStatus('valid');
+      } else {
+        setElevenLabsStatus('invalid');
+      }
+    } catch {
+      setElevenLabsStatus('invalid');
     }
   };
 
@@ -158,6 +193,78 @@ export default function SettingsView() {
                   console.anthropic.com
                 </a>
               </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Audio Summaries - ElevenLabs */}
+        <section className="px-4 mt-6" aria-labelledby="audio-heading">
+          <p className="ios-list-header" id="audio-heading">Audio Summaries</p>
+          <div className="ios-list-group">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="elevenlabs-key-input" className="text-[15px] font-medium text-label">
+                  ElevenLabs API Key
+                </label>
+                {elevenLabsStatus === 'valid' && (
+                  <span className="text-[12px] text-[var(--color-success)] font-medium flex items-center gap-1" role="status">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    Connected
+                  </span>
+                )}
+                {elevenLabsStatus === 'invalid' && (
+                  <span className="text-[12px] text-[var(--color-error)] font-medium" role="alert">Invalid Key</span>
+                )}
+                {elevenLabsStatus === 'checking' && (
+                  <span className="text-[12px] text-label-secondary" role="status">Checking...</span>
+                )}
+              </div>
+
+              <div className="relative">
+                <input
+                  id="elevenlabs-key-input"
+                  type={showElevenLabsKey ? 'text' : 'password'}
+                  value={elevenLabsKey}
+                  onChange={(e) => {
+                    setElevenLabsKey(e.target.value);
+                    setElevenLabsStatus(null);
+                  }}
+                  onBlur={handleElevenLabsSave}
+                  placeholder="Enter your ElevenLabs API key"
+                  className="ios-textfield pr-20"
+                  aria-describedby="elevenlabs-key-help"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-[var(--color-tint)]"
+                  aria-label={showElevenLabsKey ? 'Hide API key' : 'Show API key'}
+                >
+                  {showElevenLabsKey ? 'Hide' : 'Show'}
+                </button>
+              </div>
+
+              <p id="elevenlabs-key-help" className="text-[13px] text-label-tertiary mt-2">
+                Optional. Enables high-quality AI voices for audio summaries. Get a free API key at{' '}
+                <a
+                  href="https://elevenlabs.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--color-tint)] underline"
+                >
+                  elevenlabs.io
+                </a>
+                {' '}(10,000 characters/month free)
+              </p>
+
+              {!elevenLabsKey && (
+                <p className="text-[13px] text-label-secondary mt-2 p-2 rounded-md bg-[var(--color-fill)]">
+                  Without ElevenLabs, audio will use your browser's built-in text-to-speech.
+                </p>
+              )}
             </div>
           </div>
         </section>

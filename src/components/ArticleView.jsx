@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { SimpleHeader } from './Header';
 import SummaryCard from './SummaryCard';
-import { useArticles } from '../hooks/useDatabase';
+import { useArticles, useSettings } from '../hooks/useDatabase';
 import { useSummary } from '../hooks/useSummary';
 import { formatRelativeTime } from '../utils/rss';
 import { estimateReadingTime } from '../utils/ai';
@@ -59,6 +59,7 @@ export default function ArticleView({ article, onClose }) {
   const [summaryStyle, setSummaryStyle] = useState('concise'); // concise, detailed, bullets
 
   const { toggleSaved } = useArticles();
+  const { settings } = useSettings();
   const {
     summary,
     loading: summaryLoading,
@@ -234,6 +235,8 @@ export default function ArticleView({ article, onClose }) {
               summaryStyle={summaryStyle}
               onStyleChange={setSummaryStyle}
               onRegenerateWithStyle={(style) => handleSummarize(style)}
+              articleTitle={article.title}
+              elevenLabsApiKey={settings?.elevenLabsApiKey}
             />
           </section>
 
