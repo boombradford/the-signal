@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useInitDatabase } from './hooks/useDatabase';
 
@@ -10,12 +10,33 @@ import SettingsView from './components/SettingsView';
 import SavedView from './components/SavedView';
 import AddFeedSheet from './components/AddFeedSheet';
 import LoadingScreen from './components/LoadingScreen';
+import KeyboardShortcuts from './components/KeyboardShortcuts';
 
 export default function App() {
   const { isReady, error } = useInitDatabase();
   const [activeTab, setActiveTab] = useState('feed');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [showAddFeed, setShowAddFeed] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // Keyboard shortcut: ? to toggle help
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setShowShortcuts(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const closeShortcuts = useCallback(() => setShowShortcuts(false), []);
 
   // Handle back navigation
   useEffect(() => {
@@ -111,6 +132,9 @@ export default function App() {
           <AddFeedSheet onClose={() => setShowAddFeed(false)} />
         )}
       </AnimatePresence>
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcuts isOpen={showShortcuts} onClose={closeShortcuts} />
     </div>
   );
 }

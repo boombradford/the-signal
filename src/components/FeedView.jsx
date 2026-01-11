@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Header from './Header';
 import ArticleCard from './ArticleCard';
 import FeedSidebar from './FeedSidebar';
+import SearchBar from './SearchBar';
 import { useFeeds, useArticles } from '../hooks/useDatabase';
 import { useFeedSync } from '../hooks/useFeedSync';
+import { useSearch } from '../hooks/useSearch';
 
 // Icons
 const Icons = {
@@ -30,6 +32,13 @@ const Icons = {
       <path d="M4 4a16 16 0 0 1 16 16" />
       <circle cx="5" cy="19" r="2" fill="currentColor" />
     </svg>
+  ),
+  noResults: (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.35-4.35" />
+      <path d="M8 8l6 6M14 8l-6 6" />
+    </svg>
   )
 };
 
@@ -45,6 +54,15 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
     filter: 'all'
   });
   const { syncing, syncAllFeeds, syncFeed } = useFeedSync();
+
+  // Add feed titles to articles for search
+  const articlesWithFeedTitles = articles.map(article => ({
+    ...article,
+    feedTitle: feeds.find(f => f.id === article.feedId)?.title
+  }));
+
+  // Search functionality
+  const { query, setQuery, clearSearch, filteredArticles, isSearching } = useSearch(articlesWithFeedTitles);
 
   // Pull to refresh
   const handleRefresh = useCallback(async () => {
@@ -106,6 +124,18 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
         role="main"
         aria-label="Article feed"
       >
+        {/* Search bar - only show when we have articles */}
+        {feeds.length > 0 && articles.length > 0 && (
+          <div className="px-4 pt-2 pb-3">
+            <SearchBar
+              value={query}
+              onChange={setQuery}
+              onClear={clearSearch}
+              placeholder="Search articles..."
+            />
+          </div>
+        )}
+
         {/* Refresh indicator */}
         <AnimatePresence>
           {(refreshing || syncing) && (
@@ -131,7 +161,7 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
           )}
         </AnimatePresence>
 
-        {/* Empty state */}
+        {/* Empty state - no feeds */}
         {feeds.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -156,44 +186,68 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
           </motion.div>
         )}
 
+        {/* No search results */}
+        {feeds.length > 0 && isSearching && filteredArticles.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center px-8 py-16 text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-[var(--color-fill)] flex items-center justify-center mb-4 text-label-tertiary">
+              {Icons.noResults}
+            </div>
+            <h3 className="font-display font-semibold text-lg text-label mb-1">
+              No results found
+            </h3>
+            <p className="text-label-secondary text-[14px]">
+              Try a different search term
+            </p>
+          </motion.div>
+        )}
+
         {/* Articles list */}
-        {feeds.length > 0 && (
+        {feeds.length > 0 && !isSearching && articles.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12 px-4"
+          >
+            <p className="text-label-secondary">No articles yet</p>
+            <button
+              onClick={handleRefresh}
+              className="ios-button mt-2"
+            >
+              Refresh feeds
+            </button>
+          </motion.div>
+        )}
+
+        {feeds.length > 0 && filteredArticles.length > 0 && (
           <div className="px-4 pb-4">
-            {articles.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12"
-              >
-                <p className="text-label-secondary">No articles yet</p>
-                <button
-                  onClick={handleRefresh}
-                  className="ios-button mt-2"
-                >
-                  Refresh feeds
-                </button>
-              </motion.div>
-            ) : (
-              <ul
-                className="space-y-3"
-                aria-label="Articles"
-              >
-                {articles.map((article, index) => (
-                  <motion.li
-                    key={article.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: Math.min(index * 0.05, 0.5) }}
-                  >
-                    <ArticleCard
-                      article={article}
-                      feedTitle={feeds.find(f => f.id === article.feedId)?.title}
-                      onClick={() => handleArticleClick(article)}
-                    />
-                  </motion.li>
-                ))}
-              </ul>
+            {/* Search result count */}
+            {isSearching && (
+              <p className="text-[13px] text-label-secondary mb-3">
+                {filteredArticles.length} result{filteredArticles.length !== 1 ? 's' : ''} for "{query}"
+              </p>
             )}
+
+            <ul className="space-y-3" aria-label="Articles">
+              {filteredArticles.map((article, index) => (
+                <motion.li
+                  key={article.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                >
+                  <ArticleCard
+                    article={article}
+                    feedTitle={article.feedTitle}
+                    onClick={() => handleArticleClick(article)}
+                    searchQuery={isSearching ? query : null}
+                  />
+                </motion.li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
@@ -207,6 +261,7 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
             onSelectFeed={(id) => {
               setSelectedFeedId(id);
               setShowSidebar(false);
+              clearSearch(); // Clear search when changing feeds
             }}
             onClose={() => setShowSidebar(false)}
             onAddFeed={onAddFeed}
