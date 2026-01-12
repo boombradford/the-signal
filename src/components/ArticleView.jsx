@@ -236,7 +236,6 @@ export default function ArticleView({ article, onClose }) {
               onStyleChange={setSummaryStyle}
               onRegenerateWithStyle={(style) => handleSummarize(style)}
               articleTitle={article.title}
-              elevenLabsApiKey={settings?.elevenLabsApiKey}
             />
           </section>
 

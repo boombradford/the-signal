@@ -1,55 +1,82 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useUnreadCount, useCategories } from '../hooks/useDatabase';
 
-function FeedItem({ feed, isSelected, onClick }) {
+function FeedItem({ feed, isSelected, onClick, onDelete }) {
   const unreadCount = useUnreadCount(feed.id);
+  const [showDelete, setShowDelete] = useState(false);
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    if (confirm(`Delete "${feed.title}"? This will also remove all its articles.`)) {
+      onDelete(feed.id);
+    }
+    setShowDelete(false);
+  };
 
   return (
-    <button
-      onClick={onClick}
-      className={`ios-list-item w-full text-left gap-3 ${
-        isSelected ? 'bg-[var(--color-fill-tertiary)]' : ''
-      }`}
-      aria-current={isSelected ? 'true' : undefined}
-      aria-label={`${feed.title}${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
-    >
-      {/* Favicon */}
-      <div className="w-8 h-8 rounded-ios bg-fill flex items-center justify-center flex-shrink-0 overflow-hidden" aria-hidden="true">
-        {feed.faviconUrl ? (
-          <img
-            src={feed.faviconUrl}
-            alt=""
-            className="w-5 h-5"
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
-        ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-label-tertiary">
-            <path d="M4 11a9 9 0 0 1 9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M4 4a16 16 0 0 1 16 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="5" cy="19" r="1.5" fill="currentColor" />
-          </svg>
-        )}
-      </div>
+    <div className="relative group">
+      <button
+        onClick={onClick}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setShowDelete(!showDelete);
+        }}
+        className={`ios-list-item w-full text-left gap-3 ${
+          isSelected ? 'bg-[var(--color-fill-tertiary)]' : ''
+        }`}
+        aria-current={isSelected ? 'true' : undefined}
+        aria-label={`${feed.title}${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+      >
+        {/* Favicon */}
+        <div className="w-8 h-8 rounded-ios bg-fill flex items-center justify-center flex-shrink-0 overflow-hidden" aria-hidden="true">
+          {feed.faviconUrl ? (
+            <img
+              src={feed.faviconUrl}
+              alt=""
+              className="w-5 h-5"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-label-tertiary">
+              <path d="M4 11a9 9 0 0 1 9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M4 4a16 16 0 0 1 16 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="5" cy="19" r="1.5" fill="currentColor" />
+            </svg>
+          )}
+        </div>
 
-      {/* Title */}
-      <span className="flex-1 truncate font-display text-[16px] text-label">
-        {feed.title}
-      </span>
-
-      {/* Unread count */}
-      {unreadCount > 0 && (
-        <span className="ios-badge bg-[var(--color-tint)]" aria-hidden="true">
-          {unreadCount > 99 ? '99+' : unreadCount}
+        {/* Title */}
+        <span className="flex-1 truncate font-display text-[16px] text-label">
+          {feed.title}
         </span>
-      )}
 
-      {/* Chevron */}
-      <svg width="8" height="14" viewBox="0 0 8 14" fill="none" className="text-label-tertiary" aria-hidden="true">
-        <path d="M1 1L7 7L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
+        {/* Unread count */}
+        {unreadCount > 0 && (
+          <span className="ios-badge bg-[var(--color-tint)]" aria-hidden="true">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+
+        {/* Delete button (visible on hover) */}
+        <button
+          onClick={handleDelete}
+          className="opacity-0 group-hover:opacity-100 p-1 rounded text-label-tertiary hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-all"
+          aria-label={`Delete ${feed.title}`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" />
+          </svg>
+        </button>
+
+        {/* Chevron */}
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" className="text-label-tertiary group-hover:hidden" aria-hidden="true">
+          <path d="M1 1L7 7L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+    </div>
   );
 }
 
@@ -58,7 +85,8 @@ export default function FeedSidebar({
   selectedFeedId,
   onSelectFeed,
   onClose,
-  onAddFeed
+  onAddFeed,
+  onDeleteFeed
 }) {
   const totalUnread = useUnreadCount();
   const { categories } = useCategories();
@@ -144,6 +172,7 @@ export default function FeedSidebar({
                     feed={feed}
                     isSelected={selectedFeedId === feed.id}
                     onClick={() => onSelectFeed(feed.id)}
+                    onDelete={onDeleteFeed}
                   />
                 ))}
               </div>
@@ -161,6 +190,7 @@ export default function FeedSidebar({
                     feed={feed}
                     isSelected={selectedFeedId === feed.id}
                     onClick={() => onSelectFeed(feed.id)}
+                    onDelete={onDeleteFeed}
                   />
                 ))}
               </div>

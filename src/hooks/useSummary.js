@@ -1,18 +1,22 @@
-import { useState, useCallback } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useCallback, useEffect } from 'react';
 import { generateSummary, extractArticleContent } from '../utils/ai';
-import db, { summaryOperations } from '../utils/db';
+import { summaryOperations } from '../utils/db';
 
 // Hook for AI summaries
 export function useSummary(articleId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [cachedSummary, setCachedSummary] = useState(null);
 
-  // Get cached summary
-  const cachedSummary = useLiveQuery(
-    () => articleId ? summaryOperations.get(articleId) : null,
-    [articleId]
-  );
+  // Load cached summary
+  useEffect(() => {
+    if (!articleId) {
+      setCachedSummary(null);
+      return;
+    }
+
+    summaryOperations.get(articleId).then(setCachedSummary).catch(() => setCachedSummary(null));
+  }, [articleId]);
 
   // Generate summary
   const summarize = useCallback(async (content, options = {}) => {
@@ -22,36 +26,21 @@ export function useSummary(articleId) {
     setError(null);
 
     try {
-      // Get API key from settings
-      const apiKeySetting = await db.settings.get('claudeApiKey');
-      const apiKey = apiKeySetting?.value;
-
-      if (!apiKey) {
-        throw new Error('Please add your API key in Settings');
-      }
-
-      // Update status to loading
-      await db.articles.update(articleId, {
-        summaryStatus: 'loading'
-      });
-
       // Generate summary with timeout
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Summary generation timed out. Please try again.')), 30000)
       );
 
       const result = await Promise.race([
-        generateSummary(content, apiKey, options),
+        generateSummary(content, options),
         timeoutPromise
       ]);
 
-      // Cache the summary (will replace existing)
-      await summaryOperations.save(articleId, result.summary, result.model);
+      // Cache the summary
+      await summaryOperations.save(articleId, result.summary, options.style || 'concise', result.model);
 
-      // Update article summary status
-      await db.articles.update(articleId, {
-        summaryStatus: 'completed'
-      });
+      // Update local state
+      setCachedSummary({ content: result.summary, model: result.model });
 
       setLoading(false);
       return result.summary;
@@ -59,16 +48,6 @@ export function useSummary(articleId) {
       const errorMessage = err.message || 'Failed to generate summary';
       setError(errorMessage);
       setLoading(false);
-
-      // Update article summary status
-      try {
-        await db.articles.update(articleId, {
-          summaryStatus: 'error'
-        });
-      } catch {
-        // Ignore DB errors during error handling
-      }
-
       throw err;
     }
   }, [articleId]);
@@ -81,11 +60,6 @@ export function useSummary(articleId) {
     setError(null);
 
     try {
-      // Update status to loading
-      await db.articles.update(articleId, {
-        summaryStatus: 'loading'
-      });
-
       // Extract article content with timeout
       const extractPromise = extractArticleContent(url);
       const timeoutPromise = new Promise((_, reject) =>
@@ -98,21 +72,12 @@ export function useSummary(articleId) {
         throw new Error('Could not extract enough content from article');
       }
 
-      // Generate summary (summarize handles its own loading state)
+      // Generate summary
       return await summarize(extracted.content, options);
     } catch (err) {
       const errorMessage = err.message || 'Failed to fetch article';
       setError(errorMessage);
       setLoading(false);
-
-      try {
-        await db.articles.update(articleId, {
-          summaryStatus: 'error'
-        });
-      } catch {
-        // Ignore DB errors during error handling
-      }
-
       throw err;
     }
   }, [articleId, summarize]);
@@ -120,11 +85,7 @@ export function useSummary(articleId) {
   // Clear cached summary
   const clearSummary = useCallback(async () => {
     if (!articleId) return;
-
-    await db.summaries.delete(articleId);
-    await db.articles.update(articleId, {
-      summaryStatus: 'none'
-    });
+    setCachedSummary(null);
   }, [articleId]);
 
   return {
@@ -143,33 +104,21 @@ export function useBatchSummary() {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [loading, setLoading] = useState(false);
 
-  const summarizeArticles = useCallback(async (articleIds) => {
+  const summarizeArticles = useCallback(async (articles) => {
     setLoading(true);
-    setProgress({ current: 0, total: articleIds.length });
+    setProgress({ current: 0, total: articles.length });
 
     const results = [];
 
-    for (let i = 0; i < articleIds.length; i++) {
-      const articleId = articleIds[i];
+    for (let i = 0; i < articles.length; i++) {
+      const article = articles[i];
 
       try {
-        const article = await db.articles.get(articleId);
-
-        if (!article) continue;
-
         // Check if already has summary
-        const existing = await summaryOperations.get(articleId);
+        const existing = await summaryOperations.get(article.id);
         if (existing) {
-          results.push({ articleId, success: true, cached: true });
+          results.push({ articleId: article.id, success: true, cached: true });
           continue;
-        }
-
-        // Get API key
-        const apiKeySetting = await db.settings.get('claudeApiKey');
-        const apiKey = apiKeySetting?.value;
-
-        if (!apiKey) {
-          throw new Error('API key not configured');
         }
 
         // Try to use content, fall back to extracting from URL
@@ -181,22 +130,20 @@ export function useBatchSummary() {
         }
 
         // Generate summary
-        const result = await generateSummary(content, apiKey);
+        const result = await generateSummary(content);
 
         // Save
-        await summaryOperations.save(articleId, result.summary, result.model);
-        await db.articles.update(articleId, { summaryStatus: 'completed' });
+        await summaryOperations.save(article.id, result.summary, 'concise', result.model);
 
-        results.push({ articleId, success: true });
+        results.push({ articleId: article.id, success: true });
       } catch (err) {
-        results.push({ articleId, success: false, error: err.message });
-        await db.articles.update(articleId, { summaryStatus: 'error' });
+        results.push({ articleId: article.id, success: false, error: err.message });
       }
 
-      setProgress({ current: i + 1, total: articleIds.length });
+      setProgress({ current: i + 1, total: articles.length });
 
       // Rate limiting - wait between requests
-      if (i < articleIds.length - 1) {
+      if (i < articles.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }

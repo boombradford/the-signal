@@ -1,25 +1,8 @@
-// AI Summary Utilities using Claude API
+// AI Summary Utilities using serverless API
 
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-
-// Generate summary using Claude API
-export async function generateSummary(content, apiKey, options = {}) {
-  const {
-    model = 'claude-3-haiku-20240307',
-    style = 'concise' // 'concise', 'detailed', 'bullets'
-  } = options;
-
-  // Adjust token limits based on style
-  const tokenLimits = {
-    concise: 200,
-    detailed: 500,
-    bullets: 350
-  };
-  const maxTokens = tokenLimits[style] || 300;
-
-  if (!apiKey) {
-    throw new Error('Claude API key is required');
-  }
+// Generate summary using serverless API
+export async function generateSummary(content, options = {}) {
+  const { style = 'concise' } = options;
 
   // Clean the content
   const cleanContent = cleanArticleContent(content);
@@ -28,62 +11,26 @@ export async function generateSummary(content, apiKey, options = {}) {
     throw new Error('Article content is too short to summarize');
   }
 
-  // Truncate very long content
-  const truncatedContent = cleanContent.length > 15000
-    ? cleanContent.substring(0, 15000) + '...'
-    : cleanContent;
-
-  const stylePrompts = {
-    concise: 'Write exactly 2-3 complete, grammatically correct sentences that capture the essential points. Each sentence should flow naturally and be properly punctuated.',
-    detailed: 'Write a comprehensive summary of 4-5 complete sentences. Cover the main topic, key arguments, important details, and conclusions. Use proper paragraph structure with natural sentence flow.',
-    bullets: 'Provide 3-5 key takeaways as bullet points. Start each bullet with "• " followed by one clear, complete sentence. Each point should stand alone and convey a distinct insight.'
-  };
-
-  const systemPrompt = `You are a professional summarizer for a news reader app. Your summaries must be clear, accurate, and well-formatted.
-
-${stylePrompts[style]}
-
-Rules:
-- Write in complete, grammatically correct sentences
-- Do not include meta-commentary like "This article discusses..." or "The author argues..."
-- Get straight to the substance and key facts
-- Be objective and factual
-- Never truncate mid-sentence`;
-
-  const response = await fetch(CLAUDE_API_URL, {
+  const response = await fetch('/api/summarize', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: `Please summarize this article:\n\n${truncatedContent}`
-        }
-      ]
+      content: cleanContent,
+      style
     })
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `API error: ${response.status}`);
+    throw new Error(error.error || `API error: ${response.status}`);
   }
 
   const data = await response.json();
 
-  if (!data.content?.[0]?.text) {
-    throw new Error('Invalid response from Claude API');
-  }
-
   return {
-    summary: data.content[0].text,
+    summary: data.summary,
     model: data.model,
     usage: data.usage
   };
@@ -191,45 +138,8 @@ export function estimateReadingTime(text) {
   return `${minutes} min read`;
 }
 
-// Validate API key
-export async function validateApiKey(apiKey) {
-  if (!apiKey) return { valid: false, error: 'API key is required' };
-
-  try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: 'Hello' }]
-      })
-    });
-
-    if (response.ok) {
-      return { valid: true };
-    }
-
-    const error = await response.json().catch(() => ({}));
-
-    if (response.status === 401) {
-      return { valid: false, error: 'Invalid API key' };
-    }
-
-    return { valid: false, error: error.error?.message || 'API validation failed' };
-  } catch (error) {
-    return { valid: false, error: error.message };
-  }
-}
-
 export default {
   generateSummary,
   extractArticleContent,
-  estimateReadingTime,
-  validateApiKey
+  estimateReadingTime
 };

@@ -161,20 +161,13 @@ function formatInlineText(text) {
   return parts.length > 0 ? parts : text;
 }
 
-// Text-to-speech hook with ElevenLabs support
-function useTextToSpeech(elevenLabsApiKey) {
+// Text-to-speech hook using serverless TTS API
+function useTextToSpeech() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
-  const [useElevenLabs, setUseElevenLabs] = useState(false);
   const audioRef = useRef(null);
   const utteranceRef = useRef(null);
-
-  useEffect(() => {
-    setIsSupported('speechSynthesis' in window || !!elevenLabsApiKey);
-    setUseElevenLabs(!!elevenLabsApiKey);
-  }, [elevenLabsApiKey]);
 
   // Clean text for speech
   const cleanTextForSpeech = (text) => {
@@ -186,34 +179,25 @@ function useTextToSpeech(elevenLabsApiKey) {
       .trim();
   };
 
-  // ElevenLabs TTS
-  const speakWithElevenLabs = useCallback(async (text) => {
-    if (!elevenLabsApiKey || !text) return;
+  // Serverless TTS via /api/tts
+  const speakWithServerless = useCallback(async (text) => {
+    if (!text) return;
 
     setIsLoading(true);
 
     try {
       const cleanText = cleanTextForSpeech(text);
 
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
+      const response = await fetch('/api/tts', {
         method: 'POST',
         headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': elevenLabsApiKey
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          text: cleanText,
-          model_id: 'eleven_monolingual_v1',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75
-          }
-        })
+        body: JSON.stringify({ text: cleanText })
       });
 
       if (!response.ok) {
-        throw new Error('ElevenLabs API error');
+        throw new Error('TTS API error');
       }
 
       const audioBlob = await response.blob();
@@ -252,12 +236,12 @@ function useTextToSpeech(elevenLabsApiKey) {
 
       await audio.play();
     } catch (error) {
-      console.error('ElevenLabs TTS error:', error);
+      console.error('TTS error:', error);
       setIsLoading(false);
       // Fallback to browser TTS
       speakWithBrowser(text);
     }
-  }, [elevenLabsApiKey]);
+  }, []);
 
   // Browser TTS fallback
   const speakWithBrowser = useCallback((text) => {
@@ -301,35 +285,31 @@ function useTextToSpeech(elevenLabsApiKey) {
   }, []);
 
   const speak = useCallback((text) => {
-    if (useElevenLabs) {
-      speakWithElevenLabs(text);
-    } else {
-      speakWithBrowser(text);
-    }
-  }, [useElevenLabs, speakWithElevenLabs, speakWithBrowser]);
+    speakWithServerless(text);
+  }, [speakWithServerless]);
 
   const pause = useCallback(() => {
-    if (useElevenLabs && audioRef.current) {
+    if (audioRef.current) {
       audioRef.current.pause();
       setIsPaused(true);
     } else if ('speechSynthesis' in window && isPlaying) {
       window.speechSynthesis.pause();
       setIsPaused(true);
     }
-  }, [useElevenLabs, isPlaying]);
+  }, [isPlaying]);
 
   const resume = useCallback(() => {
-    if (useElevenLabs && audioRef.current && isPaused) {
+    if (audioRef.current && isPaused) {
       audioRef.current.play();
       setIsPaused(false);
     } else if ('speechSynthesis' in window && isPaused) {
       window.speechSynthesis.resume();
       setIsPaused(false);
     }
-  }, [useElevenLabs, isPaused]);
+  }, [isPaused]);
 
   const stop = useCallback(() => {
-    if (useElevenLabs && audioRef.current) {
+    if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
@@ -338,7 +318,7 @@ function useTextToSpeech(elevenLabsApiKey) {
     }
     setIsPlaying(false);
     setIsPaused(false);
-  }, [useElevenLabs]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -353,7 +333,7 @@ function useTextToSpeech(elevenLabsApiKey) {
     };
   }, []);
 
-  return { speak, pause, resume, stop, isPlaying, isPaused, isLoading, isSupported, useElevenLabs };
+  return { speak, pause, resume, stop, isPlaying, isPaused, isLoading };
 }
 
 export default function SummaryCard({
@@ -365,19 +345,18 @@ export default function SummaryCard({
   summaryStyle = 'concise',
   onStyleChange,
   onRegenerateWithStyle,
-  articleTitle = '',
-  elevenLabsApiKey = ''
+  articleTitle = ''
 }) {
   const [copied, setCopied] = useState(false);
-  const { speak, pause, resume, stop, isPlaying, isPaused, isLoading: audioLoading, isSupported, useElevenLabs } = useTextToSpeech(elevenLabsApiKey);
+  const { speak, pause, resume, stop, isPlaying, isPaused, isLoading: audioLoading } = useTextToSpeech();
 
   // Copy summary to clipboard
   const handleCopy = async () => {
     if (!summary) return;
 
     const textToCopy = articleTitle
-      ? `Summary: ${articleTitle}\n\n${summary}\n\n— Generated by The Signal`
-      : `${summary}\n\n— Generated by The Signal`;
+      ? `Summary: ${articleTitle}\n\n${summary}\n\n— Generated by The Vessl`
+      : `${summary}\n\n— Generated by The Vessl`;
 
     try {
       await navigator.clipboard.writeText(textToCopy);
@@ -566,7 +545,7 @@ export default function SummaryCard({
               </h3>
             </div>
             <span className="text-[12px] text-label-tertiary">
-              The Signal
+              The Vessl
             </span>
           </div>
 
@@ -576,67 +555,63 @@ export default function SummaryCard({
           </div>
 
           {/* Audio controls */}
-          {isSupported && (
-            <div className="px-4 pb-3">
-              <div className="flex items-center gap-2 p-2 rounded-[var(--radius-md)] bg-[var(--color-fill)]">
-                <button
-                  onClick={handlePlayPause}
-                  disabled={audioLoading}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--color-info)] text-white transition-transform active:scale-95 disabled:opacity-50"
-                  aria-label={audioLoading ? 'Loading audio...' : isPlaying && !isPaused ? 'Pause' : 'Listen to summary'}
-                >
-                  {audioLoading ? (
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    >
-                      {Icons.loading}
-                    </motion.span>
-                  ) : isPlaying && !isPaused ? Icons.pause : Icons.play}
-                </button>
-
-                {isPlaying && (
-                  <button
-                    onClick={stop}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--color-fill-secondary)] text-label-secondary"
-                    aria-label="Stop"
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-2 p-2 rounded-[var(--radius-md)] bg-[var(--color-fill)]">
+              <button
+                onClick={handlePlayPause}
+                disabled={audioLoading}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--color-info)] text-white transition-transform active:scale-95 disabled:opacity-50"
+                aria-label={audioLoading ? 'Loading audio...' : isPlaying && !isPaused ? 'Pause' : 'Listen to summary'}
+              >
+                {audioLoading ? (
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                   >
-                    {Icons.stop}
-                  </button>
-                )}
+                    {Icons.loading}
+                  </motion.span>
+                ) : isPlaying && !isPaused ? Icons.pause : Icons.play}
+              </button>
 
-                <div className="flex-1">
-                  <span className="text-[13px] text-label-secondary block">
-                    {audioLoading ? 'Loading audio...' : isPlaying && !isPaused ? 'Playing...' : isPaused ? 'Paused' : 'Listen to summary'}
-                  </span>
-                  {useElevenLabs && (
-                    <span className="text-[11px] text-[var(--color-info)]">
-                      Powered by ElevenLabs AI
-                    </span>
-                  )}
-                </div>
+              {isPlaying && (
+                <button
+                  onClick={stop}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--color-fill-secondary)] text-label-secondary"
+                  aria-label="Stop"
+                >
+                  {Icons.stop}
+                </button>
+              )}
 
-                {(isPlaying || audioLoading) && (
-                  <div className="flex gap-0.5" aria-hidden="true">
-                    {[...Array(4)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="w-1 bg-[var(--color-info)] rounded-full"
-                        animate={{
-                          height: isPaused ? 8 : [8, 16, 8, 12, 8],
-                        }}
-                        transition={{
-                          duration: 0.8,
-                          repeat: isPaused ? 0 : Infinity,
-                          delay: i * 0.1,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
+              <div className="flex-1">
+                <span className="text-[13px] text-label-secondary block">
+                  {audioLoading ? 'Loading audio...' : isPlaying && !isPaused ? 'Playing...' : isPaused ? 'Paused' : 'Listen to summary'}
+                </span>
+                <span className="text-[11px] text-[var(--color-info)]">
+                  Powered by ElevenLabs AI
+                </span>
               </div>
+
+              {(isPlaying || audioLoading) && (
+                <div className="flex gap-0.5" aria-hidden="true">
+                  {[...Array(4)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1 bg-[var(--color-info)] rounded-full"
+                      animate={{
+                        height: isPaused ? 8 : [8, 16, 8, 12, 8],
+                      }}
+                      transition={{
+                        duration: 0.8,
+                        repeat: isPaused ? 0 : Infinity,
+                        delay: i * 0.1,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Action buttons */}
           <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--color-info)]/20 bg-[var(--color-info)]/5">

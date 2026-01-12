@@ -1,184 +1,333 @@
-import Dexie from 'dexie';
+import { supabase, getUserId, initAuth } from './supabase';
 
-// Create the database
-export const db = new Dexie('DigestDB');
-
-// Define schema
-db.version(1).stores({
-  // Feeds table - RSS feed subscriptions
-  feeds: '++id, url, title, category, &link, lastUpdated, faviconUrl, unreadCount',
-
-  // Articles table - cached articles from feeds
-  articles: '++id, feedId, guid, title, link, pubDate, isRead, isSaved, summary, summaryStatus',
-
-  // Categories table - user-defined feed categories
-  categories: '++id, name, color, order',
-
-  // Settings table - user preferences
-  settings: 'key, value',
-
-  // Summaries cache - AI-generated summaries
-  summaries: 'articleId, content, model, createdAt'
-});
-
-// Default categories
+// Default categories (stored locally, not in Supabase)
 export const defaultCategories = [
-  { name: 'News', color: '#FF3B30', order: 0 },
-  { name: 'Tech', color: '#007AFF', order: 1 },
-  { name: 'Design', color: '#AF52DE', order: 2 },
-  { name: 'Business', color: '#34C759', order: 3 },
-  { name: 'Personal', color: '#FF9500', order: 4 },
+  { id: 1, name: 'News', color: '#FF3B30', order: 0 },
+  { id: 2, name: 'Tech', color: '#007AFF', order: 1 },
+  { id: 3, name: 'Design', color: '#AF52DE', order: 2 },
+  { id: 4, name: 'Business', color: '#34C759', order: 3 },
+  { id: 5, name: 'Personal', color: '#FF9500', order: 4 },
 ];
 
-// Initialize default data
+// Initialize database (auth session)
 export async function initializeDB() {
-  const categoryCount = await db.categories.count();
-
-  if (categoryCount === 0) {
-    await db.categories.bulkAdd(defaultCategories);
-  }
-
-  // Set default settings
-  const apiKey = await db.settings.get('claudeApiKey');
-  if (!apiKey) {
-    await db.settings.put({ key: 'claudeApiKey', value: '' });
-  }
-
-  const theme = await db.settings.get('theme');
-  if (!theme) {
-    await db.settings.put({ key: 'theme', value: 'system' });
-  }
+  return await initAuth();
 }
 
 // Feed operations
 export const feedOperations = {
   async add(feed) {
-    return await db.feeds.add({
-      ...feed,
-      createdAt: new Date().toISOString(),
-      lastUpdated: null,
-      unreadCount: 0
-    });
+    const userId = await getUserId();
+    if (!userId) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('feeds')
+      .insert({
+        user_id: userId,
+        url: feed.url,
+        title: feed.title,
+        description: feed.description,
+        link: feed.link,
+        favicon_url: feed.faviconUrl,
+        category: feed.category,
+        created_at: new Date().toISOString(),
+        last_updated: null
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data.id;
   },
 
   async update(id, updates) {
-    return await db.feeds.update(id, updates);
+    const updateData = {};
+    if (updates.title !== undefined) updateData.title = updates.title;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.link !== undefined) updateData.link = updates.link;
+    if (updates.faviconUrl !== undefined) updateData.favicon_url = updates.faviconUrl;
+    if (updates.category !== undefined) updateData.category = updates.category;
+    if (updates.lastUpdated !== undefined) updateData.last_updated = updates.lastUpdated;
+
+    const { error } = await supabase
+      .from('feeds')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
   },
 
   async delete(id) {
-    // Delete feed and its articles
-    await db.articles.where('feedId').equals(id).delete();
-    return await db.feeds.delete(id);
+    // Articles are deleted automatically via CASCADE
+    const { error } = await supabase
+      .from('feeds')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
   },
 
   async getAll() {
-    return await db.feeds.toArray();
+    const userId = await getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('feeds')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Map to expected format
+    return (data || []).map(feed => ({
+      id: feed.id,
+      url: feed.url,
+      title: feed.title,
+      description: feed.description,
+      link: feed.link,
+      faviconUrl: feed.favicon_url,
+      category: feed.category,
+      createdAt: feed.created_at,
+      lastUpdated: feed.last_updated
+    }));
   },
 
   async getByCategory(categoryId) {
-    return await db.feeds.where('category').equals(categoryId).toArray();
+    const userId = await getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('feeds')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('category', categoryId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map(feed => ({
+      id: feed.id,
+      url: feed.url,
+      title: feed.title,
+      description: feed.description,
+      link: feed.link,
+      faviconUrl: feed.favicon_url,
+      category: feed.category,
+      createdAt: feed.created_at,
+      lastUpdated: feed.last_updated
+    }));
   }
 };
 
 // Article operations
 export const articleOperations = {
-  async addBulk(articles) {
-    // Use bulkPut to handle duplicates (by guid)
-    const guids = articles.map(a => a.guid);
-    const existing = await db.articles.where('guid').anyOf(guids).toArray();
-    const existingGuids = new Set(existing.map(a => a.guid));
+  async addBulk(articles, feedId) {
+    const userId = await getUserId();
+    if (!userId) throw new Error('Not authenticated');
+
+    // Get existing GUIDs for this feed
+    const { data: existing } = await supabase
+      .from('articles')
+      .select('guid')
+      .eq('feed_id', feedId);
+
+    const existingGuids = new Set((existing || []).map(a => a.guid));
     const newArticles = articles.filter(a => !existingGuids.has(a.guid));
 
-    if (newArticles.length > 0) {
-      await db.articles.bulkAdd(newArticles);
-    }
+    if (newArticles.length === 0) return 0;
 
+    const insertData = newArticles.map(article => ({
+      feed_id: feedId,
+      user_id: userId,
+      guid: article.guid,
+      title: article.title,
+      link: article.link,
+      description: article.description,
+      content: article.content,
+      pub_date: article.pubDate,
+      author: article.author,
+      thumbnail: article.thumbnail,
+      is_read: false,
+      is_saved: false,
+      created_at: new Date().toISOString()
+    }));
+
+    const { error } = await supabase
+      .from('articles')
+      .insert(insertData);
+
+    if (error) throw error;
     return newArticles.length;
   },
 
   async getByFeed(feedId, limit = 50) {
-    const articles = await db.articles
-      .where('feedId')
-      .equals(feedId)
-      .toArray();
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('feed_id', feedId)
+      .order('pub_date', { ascending: false })
+      .limit(limit);
 
-    // Sort by pubDate descending and limit
-    return articles
-      .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-      .slice(0, limit);
+    if (error) throw error;
+    return (data || []).map(mapArticle);
   },
 
   async getAll(limit = 100) {
-    const articles = await db.articles.toArray();
+    const userId = await getUserId();
+    if (!userId) return [];
 
-    // Sort by pubDate descending and limit
-    return articles
-      .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-      .slice(0, limit);
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('user_id', userId)
+      .order('pub_date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return (data || []).map(mapArticle);
   },
 
   async getUnread(limit = 100) {
-    const articles = await db.articles
-      .filter(article => article.isRead === 0 || article.isRead === false || !article.isRead)
-      .toArray();
+    const userId = await getUserId();
+    if (!userId) return [];
 
-    // Sort by pubDate descending and limit
-    return articles
-      .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-      .slice(0, limit);
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_read', false)
+      .order('pub_date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return (data || []).map(mapArticle);
   },
 
   async getSaved() {
-    const articles = await db.articles
-      .filter(article => article.isSaved === 1 || article.isSaved === true)
-      .toArray();
+    const userId = await getUserId();
+    if (!userId) return [];
 
-    return articles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_saved', true)
+      .order('pub_date', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(mapArticle);
   },
 
   async markRead(id) {
-    return await db.articles.update(id, { isRead: 1 });
+    const { error } = await supabase
+      .from('articles')
+      .update({ is_read: true })
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
   },
 
   async markAllRead(feedId) {
-    return await db.articles
-      .where('feedId')
-      .equals(feedId)
-      .modify({ isRead: 1 });
+    const { error } = await supabase
+      .from('articles')
+      .update({ is_read: true })
+      .eq('feed_id', feedId);
+
+    if (error) throw error;
+    return true;
   },
 
   async toggleSaved(id) {
-    const article = await db.articles.get(id);
-    return await db.articles.update(id, { isSaved: article.isSaved ? 0 : 1 });
+    // Get current state
+    const { data: article } = await supabase
+      .from('articles')
+      .select('is_saved')
+      .eq('id', id)
+      .single();
+
+    const { error } = await supabase
+      .from('articles')
+      .update({ is_saved: !article?.is_saved })
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
   }
 };
+
+// Map database article to app format
+function mapArticle(article) {
+  return {
+    id: article.id,
+    feedId: article.feed_id,
+    guid: article.guid,
+    title: article.title,
+    link: article.link,
+    description: article.description,
+    content: article.content,
+    pubDate: article.pub_date,
+    author: article.author,
+    thumbnail: article.thumbnail,
+    isRead: article.is_read,
+    isSaved: article.is_saved,
+    createdAt: article.created_at
+  };
+}
 
 // Summary operations
 export const summaryOperations = {
-  async save(articleId, content, model = 'claude-3-haiku') {
-    return await db.summaries.put({
-      articleId,
-      content,
-      model,
-      createdAt: new Date().toISOString()
-    });
+  async save(articleId, content, style = 'concise', model = 'claude-3-haiku') {
+    const { error } = await supabase
+      .from('summaries')
+      .upsert({
+        article_id: articleId,
+        content,
+        style,
+        model,
+        created_at: new Date().toISOString()
+      }, {
+        onConflict: 'article_id,style'
+      });
+
+    if (error) throw error;
+    return true;
   },
 
-  async get(articleId) {
-    return await db.summaries.get(articleId);
+  async get(articleId, style = 'concise') {
+    const { data, error } = await supabase
+      .from('summaries')
+      .select('*')
+      .eq('article_id', articleId)
+      .eq('style', style)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    return data ? { content: data.content, model: data.model } : null;
   }
 };
 
-// Settings operations
+// Settings operations (using localStorage for now, can migrate to Supabase later)
 export const settingsOperations = {
   async get(key) {
-    const setting = await db.settings.get(key);
-    return setting?.value;
+    return localStorage.getItem(`vessl_${key}`);
   },
 
   async set(key, value) {
-    return await db.settings.put({ key, value });
+    localStorage.setItem(`vessl_${key}`, value);
+    return true;
   }
+};
+
+// Compatibility export
+export const db = {
+  feeds: feedOperations,
+  articles: articleOperations,
+  summaries: summaryOperations,
+  settings: settingsOperations
 };
 
 export default db;

@@ -3,51 +3,51 @@
 @tailwind utilities;
 
 /*
- * The Signal Design System
- * WCAG AA Compliant - Minimum 4.5:1 contrast ratio
- * Apple-inspired, accessible-first design
+ * The Vessl Design System
+ * Indie editorial aesthetic - Seattle grunge meets Tumblr zine
+ * Heavy typography, moody colors, raw energy
  */
 
 :root {
-  /* Light Mode - High Contrast */
-  --color-background: #FFFFFF;
-  --color-background-secondary: #F5F5F7;
-  --color-background-tertiary: #FFFFFF;
-  --color-background-grouped: #F5F5F7;
+  /* Light Mode - Warm paper tones */
+  --color-background: #FAF9F7;
+  --color-background-secondary: #F0EFEB;
+  --color-background-tertiary: #FAF9F7;
+  --color-background-grouped: #F0EFEB;
   --color-background-elevated: #FFFFFF;
 
-  /* Text - WCAG AA compliant on backgrounds */
-  --color-label: #1D1D1F;
-  --color-label-secondary: #494949;
-  --color-label-tertiary: #6E6E73;
+  /* Text - High contrast for editorial readability */
+  --color-label: #1A1A1A;
+  --color-label-secondary: #4A4A4A;
+  --color-label-tertiary: #6B6B6B;
 
   /* Borders and separators */
-  --color-separator: rgba(0, 0, 0, 0.12);
-  --color-separator-opaque: #D2D2D7;
+  --color-separator: rgba(0, 0, 0, 0.15);
+  --color-separator-opaque: #D4D4D4;
 
   /* Interactive fills */
-  --color-fill: rgba(0, 0, 0, 0.08);
-  --color-fill-secondary: rgba(0, 0, 0, 0.12);
-  --color-fill-tertiary: rgba(0, 0, 0, 0.06);
+  --color-fill: rgba(0, 0, 0, 0.06);
+  --color-fill-secondary: rgba(0, 0, 0, 0.10);
+  --color-fill-tertiary: rgba(0, 0, 0, 0.04);
 
-  /* Accent color - meets AA on white */
-  --color-tint: #0066CC;
-  --color-tint-hover: #004C99;
-  --color-tint-rgb: 0, 102, 204;
+  /* Accent color - Burnt orange/rust (indie zine feel) */
+  --color-tint: #C45D3A;
+  --color-tint-hover: #A84D2E;
+  --color-tint-rgb: 196, 93, 58;
 
-  /* Semantic colors - all AA compliant */
-  --color-success: #1D7A3E;
-  --color-warning: #B25000;
-  --color-error: #C41E3A;
-  --color-info: #0066CC;
+  /* Semantic colors */
+  --color-success: #3D7C47;
+  --color-warning: #C45D3A;
+  --color-error: #B33A3A;
+  --color-info: #5B6E7A;
 
-  /* Materials for translucency */
-  --material-thin: rgba(255, 255, 255, 0.85);
-  --material-regular: rgba(255, 255, 255, 0.92);
-  --material-thick: rgba(255, 255, 255, 0.97);
+  /* Materials for translucency - warmer tones */
+  --material-thin: rgba(250, 249, 247, 0.85);
+  --material-regular: rgba(250, 249, 247, 0.92);
+  --material-thick: rgba(250, 249, 247, 0.97);
 
   /* Focus ring */
-  --focus-ring: 0 0 0 3px rgba(0, 102, 204, 0.4);
+  --focus-ring: 0 0 0 3px rgba(196, 93, 58, 0.4);
 
   /* Spacing scale */
   --space-1: 4px;
@@ -89,49 +89,50 @@
 /* Dark Mode - High Contrast */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: #000000;
-    --color-background-secondary: #1C1C1E;
-    --color-background-tertiary: #2C2C2E;
-    --color-background-grouped: #000000;
-    --color-background-elevated: #1C1C1E;
+    /* Dark Mode - Deep editorial tones */
+    --color-background: #0D0D0D;
+    --color-background-secondary: #1A1A1A;
+    --color-background-tertiary: #242424;
+    --color-background-grouped: #0D0D0D;
+    --color-background-elevated: #1A1A1A;
 
-    /* Text - WCAG AA compliant on dark backgrounds */
-    --color-label: #F5F5F7;
-    --color-label-secondary: #A1A1A6;
-    --color-label-tertiary: #8E8E93;
+    /* Text - cream/warm white */
+    --color-label: #F5F3EF;
+    --color-label-secondary: #A8A5A0;
+    --color-label-tertiary: #787572;
 
     /* Borders */
-    --color-separator: rgba(255, 255, 255, 0.15);
-    --color-separator-opaque: #38383A;
+    --color-separator: rgba(255, 255, 255, 0.12);
+    --color-separator-opaque: #333333;
 
     /* Fills */
-    --color-fill: rgba(255, 255, 255, 0.12);
-    --color-fill-secondary: rgba(255, 255, 255, 0.16);
-    --color-fill-tertiary: rgba(255, 255, 255, 0.08);
+    --color-fill: rgba(255, 255, 255, 0.08);
+    --color-fill-secondary: rgba(255, 255, 255, 0.12);
+    --color-fill-tertiary: rgba(255, 255, 255, 0.05);
 
-    /* Accent - AA compliant on dark */
-    --color-tint: #4DA3FF;
-    --color-tint-hover: #7DBDFF;
-    --color-tint-rgb: 77, 163, 255;
+    /* Accent - Warm coral/salmon for dark mode */
+    --color-tint: #E07B5A;
+    --color-tint-hover: #F08A6A;
+    --color-tint-rgb: 224, 123, 90;
 
-    /* Semantic - AA compliant on dark */
-    --color-success: #30D158;
-    --color-warning: #FF9F0A;
-    --color-error: #FF453A;
-    --color-info: #4DA3FF;
+    /* Semantic */
+    --color-success: #5CAD6A;
+    --color-warning: #E07B5A;
+    --color-error: #D45454;
+    --color-info: #7A8B95;
 
-    /* Materials */
-    --material-thin: rgba(28, 28, 30, 0.85);
-    --material-regular: rgba(28, 28, 30, 0.92);
-    --material-thick: rgba(28, 28, 30, 0.97);
+    /* Materials - dark translucency */
+    --material-thin: rgba(26, 26, 26, 0.85);
+    --material-regular: rgba(26, 26, 26, 0.92);
+    --material-thick: rgba(26, 26, 26, 0.97);
 
     /* Focus ring */
-    --focus-ring: 0 0 0 3px rgba(77, 163, 255, 0.4);
+    --focus-ring: 0 0 0 3px rgba(224, 123, 90, 0.4);
 
-    /* Shadows (more subtle on dark) */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -145,11 +146,16 @@
 }
 
 html {
-  font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* The Vessl - Heavy editorial typography */
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+html, body, #root, * {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 body {
@@ -165,6 +171,12 @@ body {
 #root {
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* Global anchor styles - ensure consistent typography */
+a {
+  font-family: inherit;
+  color: inherit;
 }
 
 /* Focus styles for accessibility */
@@ -222,14 +234,15 @@ body {
     padding: 0 var(--space-4);
   }
 
-  /* Large Title */
+  /* Large Title - Heavy editorial style */
   .ios-large-title {
-    font-family: 'Outfit', system-ui, sans-serif;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
     font-size: var(--text-3xl);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     color: var(--color-label);
     padding: var(--space-2) var(--space-4);
+    text-transform: uppercase;
   }
 
   /* Tab Bar */
@@ -496,80 +509,138 @@ body {
     border-radius: 10px;
   }
 
-  /* Reading Typography */
+  /* Reading Typography - Indie editorial serif */
   .reading-content {
-    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif !important;
     font-size: 19px;
-    line-height: 1.7;
+    line-height: 1.8;
     color: var(--color-label);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+
+  /* Force all child elements to inherit the serif font */
+  .reading-content * {
+    font-family: 'Instrument Serif', Georgia, serif !important;
   }
 
   .reading-content h1,
   .reading-content h2,
-  .reading-content h3 {
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-weight: 600;
-    margin: 1.5em 0 0.5em;
-    letter-spacing: -0.02em;
+  .reading-content h3,
+  .reading-content h4 {
+    font-family: 'Space Grotesk', system-ui, sans-serif !important;
+    font-weight: 700;
+    margin: 1.75em 0 0.5em;
+    letter-spacing: -0.03em;
     color: var(--color-label);
+    line-height: 1.2;
+    text-transform: uppercase;
   }
 
-  .reading-content h1 { font-size: 28px; }
-  .reading-content h2 { font-size: 24px; }
-  .reading-content h3 { font-size: 20px; }
+  .reading-content h1 { font-size: 32px; font-weight: 700; }
+  .reading-content h2 { font-size: 26px; }
+  .reading-content h3 { font-size: 22px; }
+  .reading-content h4 { font-size: 18px; font-weight: 600; }
 
   .reading-content p {
-    margin: 0 0 1.25em;
+    margin: 0 0 1.35em;
   }
 
   .reading-content a {
+    font-family: inherit;
     color: var(--color-tint);
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
   }
 
   .reading-content a:hover {
-    color: var(--color-tint-hover);
+    border-bottom-color: var(--color-tint);
   }
 
   .reading-content a:focus-visible {
     outline: 2px solid var(--color-tint);
     outline-offset: 2px;
+    border-radius: 2px;
   }
 
   .reading-content img {
     max-width: 100%;
     height: auto;
-    border-radius: var(--radius-md);
-    margin: 1em 0;
+    border-radius: var(--radius-lg);
+    margin: 1.5em 0;
+    box-shadow: var(--shadow-md);
   }
 
   .reading-content blockquote {
-    margin: 1em 0;
-    padding-left: 1em;
+    margin: 1.5em 0;
+    padding: 0.5em 0 0.5em 1.25em;
     border-left: 3px solid var(--color-tint);
     color: var(--color-label-secondary);
+    font-style: italic;
+    font-size: 1.05em;
+  }
+
+  .reading-content ul,
+  .reading-content ol {
+    margin: 1em 0;
+    padding-left: 1.5em;
+  }
+
+  .reading-content li {
+    margin-bottom: 0.5em;
+    line-height: 1.65;
+  }
+
+  .reading-content strong {
+    font-weight: 600;
+  }
+
+  .reading-content em {
     font-style: italic;
   }
 
   .reading-content code {
-    font-family: 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 0.9em;
+    font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.875em;
     background: var(--color-fill);
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 0.2em 0.4em;
+    border-radius: 6px;
+    font-weight: 500;
   }
 
   .reading-content pre {
     background: var(--color-background-secondary);
-    padding: 1em;
-    border-radius: var(--radius-md);
+    padding: 1.25em;
+    border-radius: var(--radius-lg);
     overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
   .reading-content pre code {
     background: none;
     padding: 0;
+    font-weight: 400;
+  }
+
+  .reading-content hr {
+    border: none;
+    height: 1px;
+    background: var(--color-separator);
+    margin: 2em 0;
+  }
+
+  .reading-content figure {
+    margin: 1.5em 0;
+  }
+
+  .reading-content figcaption {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--color-label-tertiary);
+    text-align: center;
+    margin-top: 0.75em;
   }
 
   /* Visually Hidden (for screen readers) */
@@ -587,9 +658,13 @@ body {
 
   /* Summary Content Typography */
   .summary-content {
-    font-family: 'Outfit', system-ui, sans-serif;
-    line-height: 1.65;
+    font-family: 'Space Grotesk', system-ui, sans-serif !important;
+    line-height: 1.7;
     letter-spacing: -0.01em;
+  }
+
+  .summary-content * {
+    font-family: 'Space Grotesk', system-ui, sans-serif !important;
   }
 
   .summary-content p {
@@ -608,6 +683,7 @@ body {
   .summary-content ul {
     margin: 0;
     padding: 0;
+    list-style: none;
   }
 
   .summary-content li {

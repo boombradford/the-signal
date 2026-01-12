@@ -1,9 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import Header from './Header';
 import { useSettings, useFeeds, useCounts } from '../hooks/useDatabase';
-import { validateApiKey } from '../utils/ai';
-import db from '../utils/db';
 
 export default function SettingsView() {
   const scrollRef = useRef(null);
@@ -11,74 +9,10 @@ export default function SettingsView() {
   const { feeds } = useFeeds();
   const { total, unread, saved } = useCounts();
 
-  const [apiKey, setApiKey] = useState('');
-  const [apiKeyStatus, setApiKeyStatus] = useState(null); // 'valid', 'invalid', 'checking'
-  const [showApiKey, setShowApiKey] = useState(false);
-
-  // ElevenLabs for audio summaries
-  const [elevenLabsKey, setElevenLabsKey] = useState('');
-  const [elevenLabsStatus, setElevenLabsStatus] = useState(null);
-  const [showElevenLabsKey, setShowElevenLabsKey] = useState(false);
-
-  useEffect(() => {
-    if (settings.claudeApiKey) {
-      setApiKey(settings.claudeApiKey);
-      setApiKeyStatus('valid');
-    }
-    if (settings.elevenLabsApiKey) {
-      setElevenLabsKey(settings.elevenLabsApiKey);
-      setElevenLabsStatus('valid');
-    }
-  }, [settings.claudeApiKey, settings.elevenLabsApiKey]);
-
-  const handleApiKeySave = async () => {
-    if (!apiKey.trim()) {
-      await updateSetting('claudeApiKey', '');
-      setApiKeyStatus(null);
-      return;
-    }
-
-    setApiKeyStatus('checking');
-
-    const result = await validateApiKey(apiKey.trim());
-
-    if (result.valid) {
-      await updateSetting('claudeApiKey', apiKey.trim());
-      setApiKeyStatus('valid');
-    } else {
-      setApiKeyStatus('invalid');
-    }
-  };
-
-  const handleElevenLabsSave = async () => {
-    if (!elevenLabsKey.trim()) {
-      await updateSetting('elevenLabsApiKey', '');
-      setElevenLabsStatus(null);
-      return;
-    }
-
-    setElevenLabsStatus('checking');
-
-    // Validate ElevenLabs API key by fetching voices
-    try {
-      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: { 'xi-api-key': elevenLabsKey.trim() }
-      });
-
-      if (response.ok) {
-        await updateSetting('elevenLabsApiKey', elevenLabsKey.trim());
-        setElevenLabsStatus('valid');
-      } else {
-        setElevenLabsStatus('invalid');
-      }
-    } catch {
-      setElevenLabsStatus('invalid');
-    }
-  };
-
   const handleClearData = async () => {
     if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-      await db.delete();
+      // Clear localStorage settings
+      localStorage.clear();
       window.location.reload();
     }
   };
@@ -132,139 +66,36 @@ export default function SettingsView() {
           </dl>
         </section>
 
-        {/* AI Settings */}
+        {/* AI Features */}
         <section className="px-4 mt-6" aria-labelledby="ai-heading">
-          <p className="ios-list-header" id="ai-heading">AI Summaries</p>
+          <p className="ios-list-header" id="ai-heading">AI Features</p>
           <div className="ios-list-group">
             <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="api-key-input" className="text-[15px] font-medium text-label">
-                  AI API Key
-                </label>
-                {apiKeyStatus === 'valid' && (
-                  <span className="text-[12px] text-[var(--color-success)] font-medium flex items-center gap-1" role="status">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                    Connected
-                  </span>
-                )}
-                {apiKeyStatus === 'invalid' && (
-                  <span className="text-[12px] text-[var(--color-error)] font-medium" role="alert">Invalid Key</span>
-                )}
-                {apiKeyStatus === 'checking' && (
-                  <span className="text-[12px] text-label-secondary" role="status">Checking...</span>
-                )}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-info)] to-[var(--color-tint)] flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-label">AI Summaries</p>
+                  <p className="text-[13px] text-[var(--color-success)]">Powered by Claude</p>
+                </div>
               </div>
-
-              <div className="relative">
-                <input
-                  id="api-key-input"
-                  type={showApiKey ? 'text' : 'password'}
-                  value={apiKey}
-                  onChange={(e) => {
-                    setApiKey(e.target.value);
-                    setApiKeyStatus(null);
-                  }}
-                  onBlur={handleApiKeySave}
-                  placeholder="sk-ant-..."
-                  className="ios-textfield pr-20"
-                  aria-describedby="api-key-help"
-                  autoComplete="off"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-[var(--color-tint)]"
-                  aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
-                >
-                  {showApiKey ? 'Hide' : 'Show'}
-                </button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-label">Audio Summaries</p>
+                  <p className="text-[13px] text-[var(--color-success)]">Powered by ElevenLabs</p>
+                </div>
               </div>
-
-              <p id="api-key-help" className="text-[13px] text-label-tertiary mt-2">
-                Get your API key from{' '}
-                <a
-                  href="https://console.anthropic.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[var(--color-tint)] underline"
-                >
-                  console.anthropic.com
-                </a>
+              <p className="text-[13px] text-label-tertiary mt-4">
+                AI features are included — no API keys needed.
               </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Audio Summaries - ElevenLabs */}
-        <section className="px-4 mt-6" aria-labelledby="audio-heading">
-          <p className="ios-list-header" id="audio-heading">Audio Summaries</p>
-          <div className="ios-list-group">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="elevenlabs-key-input" className="text-[15px] font-medium text-label">
-                  ElevenLabs API Key
-                </label>
-                {elevenLabsStatus === 'valid' && (
-                  <span className="text-[12px] text-[var(--color-success)] font-medium flex items-center gap-1" role="status">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                    Connected
-                  </span>
-                )}
-                {elevenLabsStatus === 'invalid' && (
-                  <span className="text-[12px] text-[var(--color-error)] font-medium" role="alert">Invalid Key</span>
-                )}
-                {elevenLabsStatus === 'checking' && (
-                  <span className="text-[12px] text-label-secondary" role="status">Checking...</span>
-                )}
-              </div>
-
-              <div className="relative">
-                <input
-                  id="elevenlabs-key-input"
-                  type={showElevenLabsKey ? 'text' : 'password'}
-                  value={elevenLabsKey}
-                  onChange={(e) => {
-                    setElevenLabsKey(e.target.value);
-                    setElevenLabsStatus(null);
-                  }}
-                  onBlur={handleElevenLabsSave}
-                  placeholder="Enter your ElevenLabs API key"
-                  className="ios-textfield pr-20"
-                  aria-describedby="elevenlabs-key-help"
-                  autoComplete="off"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-[var(--color-tint)]"
-                  aria-label={showElevenLabsKey ? 'Hide API key' : 'Show API key'}
-                >
-                  {showElevenLabsKey ? 'Hide' : 'Show'}
-                </button>
-              </div>
-
-              <p id="elevenlabs-key-help" className="text-[13px] text-label-tertiary mt-2">
-                Optional. Enables high-quality AI voices for audio summaries. Get a free API key at{' '}
-                <a
-                  href="https://elevenlabs.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[var(--color-tint)] underline"
-                >
-                  elevenlabs.io
-                </a>
-                {' '}(10,000 characters/month free)
-              </p>
-
-              {!elevenLabsKey && (
-                <p className="text-[13px] text-label-secondary mt-2 p-2 rounded-md bg-[var(--color-fill)]">
-                  Without ElevenLabs, audio will use your browser's built-in text-to-speech.
-                </p>
-              )}
             </div>
           </div>
         </section>
@@ -331,7 +162,7 @@ export default function SettingsView() {
 
         {/* Footer */}
         <footer className="text-center mt-8 text-[13px] text-label-tertiary">
-          <p>The Signal</p>
+          <p>The Vessl</p>
           <p className="mt-1">AI-Powered News Reader</p>
         </footer>
       </main>

@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { fetchFeed, getFaviconUrl } from '../utils/rss';
 import { useFeeds, useArticles } from './useDatabase';
-import db from '../utils/db';
 
 // Hook for syncing RSS feeds
 export function useFeedSync() {
@@ -25,7 +24,6 @@ export function useFeedSync() {
 
       // Prepare articles for database
       const articles = result.items.map(item => ({
-        feedId: feed.id,
         guid: item.guid,
         title: item.title,
         link: item.link,
@@ -33,14 +31,11 @@ export function useFeedSync() {
         content: item.content,
         pubDate: item.pubDate,
         author: item.author,
-        thumbnail: item.thumbnail,
-        isRead: 0,
-        isSaved: 0,
-        summaryStatus: 'none'
+        thumbnail: item.thumbnail
       }));
 
-      // Add new articles
-      const newCount = await addArticles(articles);
+      // Add new articles (feedId is passed to addArticles)
+      const newCount = await addArticles(articles, feedId);
 
       // Update feed metadata
       await updateFeed(feed.id, {
@@ -92,8 +87,8 @@ export function useFeedSync() {
       // Fetch and validate the feed
       const result = await fetchFeed(url);
 
-      // Check if already subscribed
-      const existing = await db.feeds.where('url').equals(url).first();
+      // Check if already subscribed (use feeds from hook)
+      const existing = feeds.find(f => f.url === url);
       if (existing) {
         throw new Error('Already subscribed to this feed');
       }
@@ -105,13 +100,11 @@ export function useFeedSync() {
         description: result.feed.description,
         link: result.feed.link,
         faviconUrl: getFaviconUrl(result.feed.link || url),
-        category: categoryId,
-        unreadCount: result.items.length
+        category: categoryId
       });
 
       // Add initial articles
       const articles = result.items.map(item => ({
-        feedId,
         guid: item.guid,
         title: item.title,
         link: item.link,
@@ -119,13 +112,10 @@ export function useFeedSync() {
         content: item.content,
         pubDate: item.pubDate,
         author: item.author,
-        thumbnail: item.thumbnail,
-        isRead: 0,
-        isSaved: 0,
-        summaryStatus: 'none'
+        thumbnail: item.thumbnail
       }));
 
-      await addArticles(articles);
+      await addArticles(articles, feedId);
 
       return {
         success: true,
@@ -136,7 +126,7 @@ export function useFeedSync() {
       setError(err.message);
       return { success: false, error: err.message };
     }
-  }, [addFeed, addArticles]);
+  }, [feeds, addFeed, addArticles]);
 
   return {
     syncing,

@@ -7,8 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        'display': ['Outfit', 'system-ui', 'sans-serif'],
-        'reading': ['"Source Serif 4"', 'Georgia', 'serif'],
+        'display': ['Space Grotesk', 'system-ui', 'sans-serif'],
+        'reading': ['Instrument Serif', 'Georgia', 'serif'],
+        'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
         ios: {

@@ -5,7 +5,7 @@ export default function LoadingScreen() {
     <div
       className="min-h-screen bg-[var(--color-background)] flex items-center justify-center"
       role="status"
-      aria-label="Loading The Signal"
+      aria-label="Loading The Vessl"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -29,7 +29,7 @@ export default function LoadingScreen() {
 
         {/* App name */}
         <h1 className="font-display font-bold text-2xl text-label mb-2">
-          The Signal
+          The Vessl
         </h1>
 
         {/* Loading indicator */}

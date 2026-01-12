@@ -48,7 +48,7 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
   const [showSidebar, setShowSidebar] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { feeds } = useFeeds();
+  const { feeds, deleteFeed } = useFeeds();
   const { articles, markRead } = useArticles({
     feedId: selectedFeedId,
     filter: 'all'
@@ -172,7 +172,7 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
               {Icons.rss}
             </div>
             <h2 className="font-display font-semibold text-xl text-label mb-2">
-              Welcome to The Signal
+              Welcome to The Vessl
             </h2>
             <p className="text-label-secondary text-[15px] mb-6 max-w-[280px]">
               Add your favorite RSS feeds to get started. Stay updated with news, blogs, and more.
@@ -279,6 +279,12 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
             }}
             onClose={() => setShowSidebar(false)}
             onAddFeed={onAddFeed}
+            onDeleteFeed={async (id) => {
+              await deleteFeed(id);
+              if (selectedFeedId === id) {
+                setSelectedFeedId(null);
+              }
+            }}
           />
         )}
       </AnimatePresence>

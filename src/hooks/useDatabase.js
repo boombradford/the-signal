@@ -1,10 +1,10 @@
-import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useState } from 'react';
-import db, {
+import {
   initializeDB,
   feedOperations,
   articleOperations,
-  settingsOperations
+  settingsOperations,
+  defaultCategories
 } from '../utils/db';
 
 // Initialize database hook
@@ -23,34 +23,65 @@ export function useInitDatabase() {
 
 // Feeds hook
 export function useFeeds() {
-  const feeds = useLiveQuery(() => db.feeds.toArray()) || [];
+  const [feeds, setFeeds] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const refetch = useCallback(async () => {
+    try {
+      const data = await feedOperations.getAll();
+      setFeeds(data);
+    } catch (err) {
+      console.error('Failed to fetch feeds:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const addFeed = useCallback(async (feed) => {
-    return await feedOperations.add(feed);
-  }, []);
+    const id = await feedOperations.add(feed);
+    await refetch();
+    return id;
+  }, [refetch]);
 
   const updateFeed = useCallback(async (id, updates) => {
-    return await feedOperations.update(id, updates);
-  }, []);
+    await feedOperations.update(id, updates);
+    await refetch();
+  }, [refetch]);
 
   const deleteFeed = useCallback(async (id) => {
-    return await feedOperations.delete(id);
-  }, []);
+    await feedOperations.delete(id);
+    await refetch();
+  }, [refetch]);
 
   return {
     feeds,
+    loading,
     addFeed,
     updateFeed,
-    deleteFeed
+    deleteFeed,
+    refetch
   };
 }
 
 // Single feed hook
 export function useFeed(feedId) {
-  const feed = useLiveQuery(
-    () => feedId ? db.feeds.get(feedId) : null,
-    [feedId]
-  );
+  const [feed, setFeed] = useState(null);
+
+  useEffect(() => {
+    if (!feedId) {
+      setFeed(null);
+      return;
+    }
+
+    feedOperations.getAll().then(feeds => {
+      const found = feeds.find(f => f.id === feedId);
+      setFeed(found || null);
+    });
+  }, [feedId]);
 
   return feed;
 }
@@ -58,83 +89,100 @@ export function useFeed(feedId) {
 // Articles hook
 export function useArticles(options = {}) {
   const { feedId, filter = 'all', limit = 100 } = options;
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const articles = useLiveQuery(() => {
-    if (filter === 'saved') {
-      return articleOperations.getSaved();
+  const refetch = useCallback(async () => {
+    try {
+      let data;
+
+      if (filter === 'saved') {
+        data = await articleOperations.getSaved();
+      } else if (filter === 'unread') {
+        data = await articleOperations.getUnread(limit);
+      } else if (feedId) {
+        data = await articleOperations.getByFeed(feedId, limit);
+      } else {
+        data = await articleOperations.getAll(limit);
+      }
+
+      setArticles(data);
+    } catch (err) {
+      console.error('Failed to fetch articles:', err);
+    } finally {
+      setLoading(false);
     }
+  }, [feedId, filter, limit]);
 
-    if (filter === 'unread') {
-      return articleOperations.getUnread(limit);
-    }
-
-    if (feedId) {
-      return articleOperations.getByFeed(feedId, limit);
-    }
-
-    return articleOperations.getAll(limit);
-  }, [feedId, filter, limit]) || [];
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const markRead = useCallback(async (id) => {
-    return await articleOperations.markRead(id);
-  }, []);
+    await articleOperations.markRead(id);
+    await refetch();
+  }, [refetch]);
 
   const markAllRead = useCallback(async (fId) => {
-    return await articleOperations.markAllRead(fId);
-  }, []);
+    await articleOperations.markAllRead(fId);
+    await refetch();
+  }, [refetch]);
 
   const toggleSaved = useCallback(async (id) => {
-    return await articleOperations.toggleSaved(id);
-  }, []);
+    await articleOperations.toggleSaved(id);
+    await refetch();
+  }, [refetch]);
 
-  const addArticles = useCallback(async (newArticles) => {
-    return await articleOperations.addBulk(newArticles);
-  }, []);
+  const addArticles = useCallback(async (newArticles, fId) => {
+    const count = await articleOperations.addBulk(newArticles, fId);
+    await refetch();
+    return count;
+  }, [refetch]);
 
   return {
     articles,
+    loading,
     markRead,
     markAllRead,
     toggleSaved,
-    addArticles
+    addArticles,
+    refetch
   };
 }
 
 // Single article hook
 export function useArticle(articleId) {
-  const article = useLiveQuery(
-    () => articleId ? db.articles.get(articleId) : null,
-    [articleId]
-  );
+  const [article, setArticle] = useState(null);
+
+  useEffect(() => {
+    if (!articleId) {
+      setArticle(null);
+      return;
+    }
+
+    articleOperations.getAll().then(articles => {
+      const found = articles.find(a => a.id === articleId);
+      setArticle(found || null);
+    });
+  }, [articleId]);
 
   return article;
 }
 
-// Categories hook
+// Categories hook (using local defaults)
 export function useCategories() {
-  const categories = useLiveQuery(
-    () => db.categories.orderBy('order').toArray()
-  ) || [];
+  const [categories] = useState(defaultCategories);
 
-  const addCategory = useCallback(async (category) => {
-    const maxOrder = categories.length > 0
-      ? Math.max(...categories.map(c => c.order))
-      : -1;
-
-    return await db.categories.add({
-      ...category,
-      order: maxOrder + 1
-    });
-  }, [categories]);
-
-  const updateCategory = useCallback(async (id, updates) => {
-    return await db.categories.update(id, updates);
+  const addCategory = useCallback(async () => {
+    console.warn('Categories are static in Supabase version');
   }, []);
 
-  const deleteCategory = useCallback(async (id) => {
-    // Move feeds in this category to uncategorized
-    await db.feeds.where('category').equals(id).modify({ category: null });
-    return await db.categories.delete(id);
+  const updateCategory = useCallback(async () => {
+    console.warn('Categories are static in Supabase version');
+  }, []);
+
+  const deleteCategory = useCallback(async () => {
+    console.warn('Categories are static in Supabase version');
   }, []);
 
   return {
@@ -145,19 +193,15 @@ export function useCategories() {
   };
 }
 
-// Settings hook
+// Settings hook (using localStorage)
 export function useSettings() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadSettings = async () => {
-      const allSettings = await db.settings.toArray();
-      const settingsObj = {};
-      allSettings.forEach(s => {
-        settingsObj[s.key] = s.value;
-      });
-      setSettings(settingsObj);
+      const theme = await settingsOperations.get('theme') || 'system';
+      setSettings({ theme });
       setLoading(false);
     };
 
@@ -183,34 +227,54 @@ export function useSettings() {
 
 // Unread count hook
 export function useUnreadCount(feedId) {
-  const count = useLiveQuery(async () => {
-    if (feedId) {
-      return await db.articles
-        .where('feedId')
-        .equals(feedId)
-        .and(article => article.isRead === 0 || article.isRead === false)
-        .count();
-    }
+  const [count, setCount] = useState(0);
 
-    return await db.articles
-      .filter(article => article.isRead === 0 || article.isRead === false)
-      .count();
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        let articles;
+        if (feedId) {
+          articles = await articleOperations.getByFeed(feedId, 1000);
+        } else {
+          articles = await articleOperations.getAll(1000);
+        }
+        const unreadCount = articles.filter(a => !a.isRead).length;
+        setCount(unreadCount);
+      } catch (err) {
+        console.error('Failed to fetch unread count:', err);
+      }
+    };
+
+    fetchCount();
   }, [feedId]);
 
-  return count || 0;
+  return count;
 }
 
 // Total counts hook
 export function useCounts() {
-  const total = useLiveQuery(() => db.articles.count()) || 0;
-  const unread = useLiveQuery(() =>
-    db.articles.filter(a => !a.isRead).count()
-  ) || 0;
-  const saved = useLiveQuery(() =>
-    db.articles.filter(a => a.isSaved).count()
-  ) || 0;
+  const [counts, setCounts] = useState({ total: 0, unread: 0, saved: 0 });
 
-  return { total, unread, saved };
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const all = await articleOperations.getAll(10000);
+        const saved = await articleOperations.getSaved();
+
+        setCounts({
+          total: all.length,
+          unread: all.filter(a => !a.isRead).length,
+          saved: saved.length
+        });
+      } catch (err) {
+        console.error('Failed to fetch counts:', err);
+      }
+    };
+
+    fetchCounts();
+  }, []);
+
+  return counts;
 }
 
 export default {
