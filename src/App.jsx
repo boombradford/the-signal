@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { useInitDatabase } from './hooks/useDatabase';
+import { useInitDatabase, useFeeds } from './hooks/useDatabase';
 
 // Components
 import BottomNav from './components/BottomNav';
@@ -14,6 +14,7 @@ import KeyboardShortcuts from './components/KeyboardShortcuts';
 
 export default function App() {
   const { isReady, error } = useInitDatabase();
+  const { refetch: refetchFeeds } = useFeeds();
   const [activeTab, setActiveTab] = useState('feed');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [showAddFeed, setShowAddFeed] = useState(false);
@@ -129,7 +130,10 @@ export default function App() {
       {/* Add Feed Sheet */}
       <AnimatePresence>
         {showAddFeed && (
-          <AddFeedSheet onClose={() => setShowAddFeed(false)} />
+          <AddFeedSheet
+            onClose={() => setShowAddFeed(false)}
+            onSuccess={refetchFeeds}
+          />
         )}
       </AnimatePresence>
 

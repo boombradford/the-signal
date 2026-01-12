@@ -46,7 +46,7 @@ const Icons = {
   )
 };
 
-export default function AddFeedSheet({ onClose }) {
+export default function AddFeedSheet({ onClose, onSuccess }) {
   const [url, setUrl] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -79,6 +79,7 @@ export default function AddFeedSheet({ onClose }) {
     if (result.success) {
       setSuccess(`Added "${result.feed.title}" with ${result.articleCount} articles`);
       setUrl('');
+      onSuccess?.(); // Refresh feeds list
       setTimeout(onClose, 1500);
     } else {
       setError(result.error);
