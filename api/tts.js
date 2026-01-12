@@ -34,8 +34,8 @@ export default async function handler(req, res) {
       .replace(/\n+/g, '. ')
       .trim();
 
-    // Using "Aria" voice - natural, warm female voice
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/9BWtsMINqrJLrRacOk9x', {
+    // Using "Josh" voice - expressive, dynamic young American male
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/TxGEqnHWrfWFTfGW9XjX', {
       method: 'POST',
       headers: {
         'Accept': 'audio/mpeg',
@@ -46,9 +46,9 @@ export default async function handler(req, res) {
         text: cleanText.slice(0, 5000), // ElevenLabs limit
         model_id: 'eleven_turbo_v2_5',
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.8,
-          style: 0.3,
+          stability: 0.35,
+          similarity_boost: 0.75,
+          style: 0.65,
           use_speaker_boost: true
         }
       })

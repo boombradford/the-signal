@@ -26,14 +26,35 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Content too short to summarize' });
     }
 
-    // Style-specific prompts
+    // Style-specific prompts with better formatting instructions
     const stylePrompts = {
-      concise: 'Summarize in 2-3 clear sentences. Focus on the main point.',
-      detailed: 'Provide a comprehensive summary in 4-5 sentences covering key details.',
-      bullets: 'List 3-5 key points as bullet points. Start each with •'
+      concise: `Write a 2-3 sentence summary that captures the essence of the article.
+- Lead with the most important insight or news
+- Use clear, punchy language
+- End with the key takeaway or implication`,
+      detailed: `Write a comprehensive 4-5 sentence summary:
+- Open with the main topic and why it matters
+- Include key facts, figures, or quotes
+- Cover different perspectives if relevant
+- Conclude with implications or next steps`,
+      bullets: `Extract the 4-5 most important points as bullet points:
+• Each point should be a complete, standalone insight
+• Lead each bullet with the key fact or finding
+• Include specific details, numbers, or names when relevant
+• Order from most to least important`
     };
 
-    const maxTokens = { concise: 200, detailed: 500, bullets: 350 };
+    const maxTokens = { concise: 250, detailed: 600, bullets: 450 };
+
+    const systemPrompt = `You are a sharp, engaging news editor who writes summaries that are:
+- Informative and substantive (not vague or generic)
+- Well-structured with clear flow
+- Written in active voice
+- Free of filler phrases like "This article discusses..." or "The author explains..."
+
+${stylePrompts[style] || stylePrompts.concise}
+
+Start directly with the content. Never begin with "This article" or similar meta-references.`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -44,8 +65,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-3-haiku-20240307',
-        max_tokens: maxTokens[style] || 200,
-        system: `You are a skilled editor who creates clear, accurate summaries. ${stylePrompts[style] || stylePrompts.concise} Never add information not in the original. Be direct and informative.`,
+        max_tokens: maxTokens[style] || 250,
+        system: systemPrompt,
         messages: [{
           role: 'user',
           content: `Summarize this article:\n\n${content.slice(0, 15000)}`

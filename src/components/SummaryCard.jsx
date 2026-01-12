@@ -588,7 +588,7 @@ export default function SummaryCard({
                   {audioLoading ? 'Loading audio...' : isPlaying && !isPaused ? 'Playing...' : isPaused ? 'Paused' : 'Listen to summary'}
                 </span>
                 <span className="text-[11px] text-[var(--color-info)]">
-                  Powered by ElevenLabs AI
+                  ElevenLabs AI Voice
                 </span>
               </div>
 
