@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { generateSummary, extractArticleContent } from '../utils/ai';
 import { summaryOperations } from '../utils/db';
 
@@ -7,6 +7,17 @@ export function useSummary(articleId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [cachedSummary, setCachedSummary] = useState(null);
+  const abortControllerRef = useRef(null);
+
+  // Clean up pending requests when article changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [articleId]);
 
   // Load cached summary
   useEffect(() => {
@@ -22,19 +33,21 @@ export function useSummary(articleId) {
   const summarize = useCallback(async (content, options = {}) => {
     if (!articleId) return null;
 
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setLoading(true);
     setError(null);
 
     try {
-      // Generate summary with timeout
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Summary generation timed out. Please try again.')), 30000)
-      );
+      const result = await generateSummary(content, { ...options, signal });
 
-      const result = await Promise.race([
-        generateSummary(content, options),
-        timeoutPromise
-      ]);
+      // Don't update state if request was aborted
+      if (signal.aborted) return null;
 
       // Cache the summary
       await summaryOperations.save(articleId, result.summary, options.style || 'concise', result.model);
@@ -45,6 +58,9 @@ export function useSummary(articleId) {
       setLoading(false);
       return result.summary;
     } catch (err) {
+      // Ignore abort errors
+      if (err.name === 'AbortError') return null;
+
       const errorMessage = err.message || 'Failed to generate summary';
       setError(errorMessage);
       setLoading(false);
@@ -56,25 +72,32 @@ export function useSummary(articleId) {
   const summarizeFromUrl = useCallback(async (url, options = {}) => {
     if (!articleId) return null;
 
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setLoading(true);
     setError(null);
 
     try {
-      // Extract article content with timeout
-      const extractPromise = extractArticleContent(url);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Failed to fetch article content. Please try again.')), 15000)
-      );
+      const extracted = await extractArticleContent(url, { signal });
 
-      const extracted = await Promise.race([extractPromise, timeoutPromise]);
+      // Don't continue if request was aborted
+      if (signal.aborted) return null;
 
       if (!extracted.content || extracted.content.length < 100) {
         throw new Error('Could not extract enough content from article');
       }
 
-      // Generate summary
-      return await summarize(extracted.content, options);
+      // Generate summary (pass signal through options)
+      return await summarize(extracted.content, { ...options, signal });
     } catch (err) {
+      // Ignore abort errors
+      if (err.name === 'AbortError') return null;
+
       const errorMessage = err.message || 'Failed to fetch article';
       setError(errorMessage);
       setLoading(false);
