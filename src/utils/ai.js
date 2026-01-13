@@ -2,7 +2,7 @@
 
 // Generate summary using serverless API
 export async function generateSummary(content, options = {}) {
-  const { style = 'concise' } = options;
+  const { style = 'concise', signal } = options;
 
   // Clean the content
   const cleanContent = cleanArticleContent(content);
@@ -19,7 +19,8 @@ export async function generateSummary(content, options = {}) {
     body: JSON.stringify({
       content: cleanContent,
       style
-    })
+    }),
+    signal // Pass abort signal to fetch
   });
 
   if (!response.ok) {
@@ -68,12 +69,13 @@ function cleanArticleContent(html) {
 }
 
 // Extract article content from URL (for full article fetching)
-export async function extractArticleContent(url) {
+export async function extractArticleContent(url, options = {}) {
+  const { signal } = options;
   // Using a simple approach - in production you'd want a proper parser
   const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
   try {
-    const response = await fetch(CORS_PROXY + encodeURIComponent(url));
+    const response = await fetch(CORS_PROXY + encodeURIComponent(url), { signal });
 
     if (!response.ok) {
       throw new Error('Failed to fetch article');

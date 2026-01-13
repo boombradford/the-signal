@@ -48,8 +48,8 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
   const [showSidebar, setShowSidebar] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { feeds, deleteFeed } = useFeeds();
-  const { articles, markRead } = useArticles({
+  const { feeds, loading: feedsLoading, deleteFeed } = useFeeds();
+  const { articles, loading: articlesLoading, markRead } = useArticles({
     feedId: selectedFeedId,
     filter: 'all'
   });
@@ -161,8 +161,27 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
           )}
         </AnimatePresence>
 
+        {/* Loading skeleton */}
+        {(feedsLoading || articlesLoading) && articles.length === 0 && feeds.length === 0 && (
+          <div className="px-4 py-4 space-y-4" aria-busy="true" aria-label="Loading articles">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-[var(--color-fill)] rounded-[var(--radius-md)] p-4">
+                <div className="flex gap-3">
+                  <div className="ios-skeleton w-16 h-16 rounded-[var(--radius-sm)]" />
+                  <div className="flex-1 space-y-2">
+                    <div className="ios-skeleton h-4 w-3/4" />
+                    <div className="ios-skeleton h-3 w-full" />
+                    <div className="ios-skeleton h-3 w-5/6" />
+                    <div className="ios-skeleton h-3 w-1/3 mt-2" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Empty state - no feeds */}
-        {feeds.length === 0 && (
+        {!feedsLoading && feeds.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -205,8 +224,27 @@ export default function FeedView({ onSelectArticle, onAddFeed }) {
           </motion.div>
         )}
 
-        {/* Articles list */}
-        {feeds.length > 0 && !isSearching && articles.length === 0 && (
+        {/* Loading articles for selected feed */}
+        {articlesLoading && feeds.length > 0 && articles.length === 0 && (
+          <div className="px-4 py-4 space-y-4" aria-busy="true" aria-label="Loading articles">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-[var(--color-fill)] rounded-[var(--radius-md)] p-4">
+                <div className="flex gap-3">
+                  <div className="ios-skeleton w-16 h-16 rounded-[var(--radius-sm)]" />
+                  <div className="flex-1 space-y-2">
+                    <div className="ios-skeleton h-4 w-3/4" />
+                    <div className="ios-skeleton h-3 w-full" />
+                    <div className="ios-skeleton h-3 w-5/6" />
+                    <div className="ios-skeleton h-3 w-1/3 mt-2" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* No articles state */}
+        {!articlesLoading && feeds.length > 0 && !isSearching && articles.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

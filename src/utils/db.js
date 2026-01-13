@@ -256,6 +256,47 @@ export const articleOperations = {
 
     if (error) throw error;
     return true;
+  },
+
+  // Efficient count queries using Supabase count feature
+  async getCounts() {
+    const userId = await getUserId();
+    if (!userId) return { total: 0, unread: 0, saved: 0 };
+
+    // Run count queries in parallel
+    const [totalResult, unreadResult, savedResult] = await Promise.all([
+      supabase
+        .from('articles')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
+      supabase
+        .from('articles')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_read', false),
+      supabase
+        .from('articles')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_saved', true)
+    ]);
+
+    return {
+      total: totalResult.count || 0,
+      unread: unreadResult.count || 0,
+      saved: savedResult.count || 0
+    };
+  },
+
+  async getUnreadCountByFeed(feedId) {
+    const { count, error } = await supabase
+      .from('articles')
+      .select('*', { count: 'exact', head: true })
+      .eq('feed_id', feedId)
+      .eq('is_read', false);
+
+    if (error) throw error;
+    return count || 0;
   }
 };
 

@@ -225,21 +225,20 @@ export function useSettings() {
   };
 }
 
-// Unread count hook
+// Unread count hook - uses efficient count query
 export function useUnreadCount(feedId) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        let articles;
         if (feedId) {
-          articles = await articleOperations.getByFeed(feedId, 1000);
+          const unreadCount = await articleOperations.getUnreadCountByFeed(feedId);
+          setCount(unreadCount);
         } else {
-          articles = await articleOperations.getAll(1000);
+          const counts = await articleOperations.getCounts();
+          setCount(counts.unread);
         }
-        const unreadCount = articles.filter(a => !a.isRead).length;
-        setCount(unreadCount);
       } catch (err) {
         console.error('Failed to fetch unread count:', err);
       }
@@ -251,21 +250,15 @@ export function useUnreadCount(feedId) {
   return count;
 }
 
-// Total counts hook
+// Total counts hook - uses efficient count queries
 export function useCounts() {
   const [counts, setCounts] = useState({ total: 0, unread: 0, saved: 0 });
 
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const all = await articleOperations.getAll(10000);
-        const saved = await articleOperations.getSaved();
-
-        setCounts({
-          total: all.length,
-          unread: all.filter(a => !a.isRead).length,
-          saved: saved.length
-        });
+        const result = await articleOperations.getCounts();
+        setCounts(result);
       } catch (err) {
         console.error('Failed to fetch counts:', err);
       }

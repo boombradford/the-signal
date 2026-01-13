@@ -4,19 +4,17 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials not found, using fallback');
+  throw new Error(
+    'Missing Supabase credentials. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.'
+  );
 }
 
-export const supabase = createClient(
-  supabaseUrl || 'https://yifwrwljuypjqmngleuw.supabase.co',
-  supabaseAnonKey || 'sb_publishable_RwHCZbYFyr15rogpBQLh5Q_5AVngNOy',
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    }
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
   }
-);
+});
 
 // Get or create anonymous session
 export async function getSession() {

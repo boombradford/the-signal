@@ -57,22 +57,41 @@ export default function AddFeedSheet({ onClose, onSuccess }) {
   const { subscribeFeed } = useFeedSync();
   const { categories } = useCategories();
 
+  // Validate URL using URL constructor
+  const validateUrl = (urlString) => {
+    try {
+      let normalizedUrl = urlString.trim();
+      if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+        normalizedUrl = 'https://' + normalizedUrl;
+      }
+      const parsed = new URL(normalizedUrl);
+      // Ensure it has a valid hostname (not just 'https://')
+      if (!parsed.hostname || parsed.hostname.length < 3 || !parsed.hostname.includes('.')) {
+        return { valid: false, error: 'Please enter a valid URL with a domain (e.g., example.com/feed)' };
+      }
+      return { valid: true, url: parsed.href };
+    } catch {
+      return { valid: false, error: 'Please enter a valid URL' };
+    }
+  };
+
   const handleSubmit = async (feedUrl = url) => {
     if (!feedUrl.trim()) {
       setError('Please enter a feed URL');
       return;
     }
 
-    // Normalize URL
-    let normalizedUrl = feedUrl.trim();
-    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
-      normalizedUrl = 'https://' + normalizedUrl;
+    // Validate and normalize URL
+    const validation = validateUrl(feedUrl);
+    if (!validation.valid) {
+      setError(validation.error);
+      return;
     }
 
     setLoading(true);
     setError(null);
 
-    const result = await subscribeFeed(normalizedUrl, selectedCategory);
+    const result = await subscribeFeed(validation.url, selectedCategory);
 
     setLoading(false);
 
