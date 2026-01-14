@@ -67,19 +67,69 @@ function cleanArticleContent(html) {
   return text;
 }
 
+// CORS proxies with fallbacks (same approach as rss.js)
+const CORS_PROXIES = [
+  { url: 'https://api.allorigins.win/raw?url=', appendTimestamp: true },
+  { url: 'https://corsproxy.io/?', appendTimestamp: false },
+  { url: 'https://api.codetabs.com/v1/proxy?quest=', appendTimestamp: false },
+];
+
+// Generate cache-busting timestamp
+function getCacheBuster() {
+  return `_cb=${Date.now()}`;
+}
+
 // Extract article content from URL (for full article fetching)
 export async function extractArticleContent(url) {
-  // Using a simple approach - in production you'd want a proper parser
-  const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+  let lastError;
+  let html = null;
+
+  // Try direct fetch first (works if CORS is enabled)
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'text/html,application/xhtml+xml,application/xml',
+      },
+    });
+
+    if (response.ok) {
+      html = await response.text();
+    }
+  } catch (e) {
+    lastError = e;
+  }
+
+  // Try CORS proxies if direct fetch failed
+  if (!html) {
+    for (const proxy of CORS_PROXIES) {
+      try {
+        let proxyUrl = proxy.url + encodeURIComponent(url);
+        if (proxy.appendTimestamp) {
+          proxyUrl += (proxyUrl.includes('?') ? '&' : '?') + getCacheBuster();
+        }
+
+        const response = await fetch(proxyUrl, {
+          headers: {
+            'Cache-Control': 'no-cache'
+          },
+          cache: 'no-store'
+        });
+
+        if (response.ok) {
+          html = await response.text();
+          break;
+        }
+      } catch (e) {
+        lastError = e;
+      }
+    }
+  }
+
+  if (!html) {
+    throw new Error(lastError?.message || 'Failed to fetch article from all sources');
+  }
 
   try {
-    const response = await fetch(CORS_PROXY + encodeURIComponent(url));
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch article');
-    }
-
-    const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 

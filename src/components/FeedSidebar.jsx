@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUnreadCount, useCategories } from '../hooks/useDatabase';
+import { springGentle, springTactile, triggerHaptic } from '../utils/animations';
 
 function FeedItem({ feed, isSelected, onClick, onDelete }) {
   const unreadCount = useUnreadCount(feed.id);
@@ -8,6 +9,7 @@ function FeedItem({ feed, isSelected, onClick, onDelete }) {
 
   const handleDelete = (e) => {
     e.stopPropagation();
+    triggerHaptic('medium');
     if (confirm(`Delete "${feed.title}"? This will also remove all its articles.`)) {
       onDelete(feed.id);
     }
@@ -16,12 +18,18 @@ function FeedItem({ feed, isSelected, onClick, onDelete }) {
 
   return (
     <div className="relative group">
-      <button
-        onClick={onClick}
+      <motion.button
+        onClick={() => {
+          triggerHaptic('selection');
+          onClick();
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
+          triggerHaptic('light');
           setShowDelete(!showDelete);
         }}
+        whileTap={{ scale: 0.98 }}
+        transition={springTactile}
         className={`ios-list-item w-full text-left gap-3 ${
           isSelected ? 'bg-[var(--color-fill-tertiary)]' : ''
         }`}
@@ -48,14 +56,25 @@ function FeedItem({ feed, isSelected, onClick, onDelete }) {
           )}
         </div>
 
-        {/* Title */}
-        <span className="flex-1 truncate font-display text-[16px] text-label">
+        {/* Title - with proper truncation */}
+        <span
+          className="flex-1 truncate text-[15px] text-label"
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+            fontWeight: 400,
+            letterSpacing: '-0.016em',
+            minWidth: 0,
+          }}
+        >
           {feed.title}
         </span>
 
-        {/* Unread count */}
+        {/* Unread count badge */}
         {unreadCount > 0 && (
-          <span className="ios-badge bg-[var(--color-tint)]" aria-hidden="true">
+          <span
+            className="ios-badge bg-[var(--color-tint)]"
+            aria-hidden="true"
+          >
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -75,7 +94,7 @@ function FeedItem({ feed, isSelected, onClick, onDelete }) {
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" className="text-label-tertiary group-hover:hidden" aria-hidden="true">
           <path d="M1 1L7 7L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </button>
+      </motion.button>
     </div>
   );
 }
@@ -105,40 +124,75 @@ export default function FeedSidebar({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-40 bg-black/40"
-        onClick={onClose}
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+        onClick={() => {
+          triggerHaptic('light');
+          onClose();
+        }}
         aria-hidden="true"
       />
 
-      {/* Sidebar */}
+      {/* Sidebar - Premium glass styling */}
       <motion.aside
         initial={{ x: '-100%' }}
         animate={{ x: 0 }}
         exit={{ x: '-100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed left-0 top-0 bottom-0 z-50 w-[300px] bg-[var(--color-background-secondary)] safe-top safe-bottom"
+        transition={springGentle}
+        className="fixed left-0 top-0 bottom-0 z-50 w-[300px] safe-top safe-bottom"
+        style={{
+          background: 'rgba(10, 10, 12, 0.95)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          borderRight: '0.5px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '10px 0 40px rgba(0, 0, 0, 0.4)'
+        }}
         role="dialog"
         aria-modal="true"
         aria-label="Feed navigation"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-separator">
-          <h2 className="font-display font-bold text-[22px] text-label">Feeds</h2>
-          <button
-            onClick={onClose}
-            className="ios-button -mr-2"
+        {/* Header - Premium styling */}
+        <div
+          className="flex items-center justify-between px-5 py-4"
+          style={{
+            borderBottom: '0.5px solid rgba(255, 255, 255, 0.06)'
+          }}
+        >
+          <h2
+            className="text-[22px] text-label"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              fontWeight: 600,
+              letterSpacing: '-0.024em'
+            }}
+          >
+            Feeds
+          </h2>
+          <motion.button
+            onClick={() => {
+              triggerHaptic('light');
+              onClose();
+            }}
+            whileTap={{ scale: 0.95 }}
+            transition={springTactile}
+            className="text-[17px] font-medium text-[var(--color-tint)] px-2 -mr-2 hover:opacity-70 transition-opacity"
+            style={{ letterSpacing: '-0.022em' }}
             aria-label="Close feed navigation"
           >
             Done
-          </button>
+          </motion.button>
         </div>
 
         {/* Scroll area */}
         <nav className="overflow-y-auto h-[calc(100%-60px)]" aria-label="Feed list">
           {/* All Articles */}
           <div className="ios-list-group mt-4 mx-4">
-            <button
-              onClick={() => onSelectFeed(null)}
+            <motion.button
+              onClick={() => {
+                triggerHaptic('selection');
+                onSelectFeed(null);
+              }}
+              whileTap={{ scale: 0.98 }}
+              transition={springTactile}
               className={`ios-list-item w-full text-left gap-3 ${
                 selectedFeedId === null ? 'bg-[var(--color-fill-tertiary)]' : ''
               }`}
@@ -152,13 +206,25 @@ export default function FeedSidebar({
                   <circle cx="5" cy="19" r="1.5" fill="white" />
                 </svg>
               </div>
-              <span className="flex-1 font-display font-medium text-[16px] text-label">
+              <span
+                className="flex-1 text-[15px] text-label"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                  fontWeight: 500,
+                  letterSpacing: '-0.016em',
+                }}
+              >
                 All Articles
               </span>
               {totalUnread > 0 && (
-                <span className="ios-badge" aria-hidden="true">{totalUnread > 99 ? '99+' : totalUnread}</span>
+                <span
+                  className="ios-badge bg-[var(--color-tint)]"
+                  aria-hidden="true"
+                >
+                  {totalUnread > 99 ? '99+' : totalUnread}
+                </span>
               )}
-            </button>
+            </motion.button>
           </div>
 
           {/* Uncategorized feeds */}
@@ -199,11 +265,14 @@ export default function FeedSidebar({
 
           {/* Add feed button */}
           <div className="p-4 mt-4">
-            <button
+            <motion.button
               onClick={() => {
+                triggerHaptic('medium');
                 onClose();
                 setTimeout(onAddFeed, 300);
               }}
+              whileTap={{ scale: 0.98 }}
+              transition={springTactile}
               className="w-full p-3 rounded-ios-lg border-2 border-dashed border-separator
                          flex items-center justify-center gap-2 text-label-secondary
                          hover:border-[var(--color-tint)] hover:text-[var(--color-tint)]
@@ -214,7 +283,7 @@ export default function FeedSidebar({
                 <path d="M11 1V21M1 11H21" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
               </svg>
               <span className="font-display font-medium">Add Feed</span>
-            </button>
+            </motion.button>
           </div>
         </nav>
       </motion.aside>

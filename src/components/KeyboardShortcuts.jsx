@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { springGentle, springTactile, triggerHaptic } from '../utils/animations';
 
 const shortcuts = [
   { keys: ['Esc'], description: 'Close article view' },
@@ -48,8 +49,11 @@ export default function KeyboardShortcuts({ isOpen, onClose }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50"
+            onClick={() => {
+              triggerHaptic('light');
+              onClose();
+            }}
             aria-hidden="true"
           />
 
@@ -59,14 +63,23 @@ export default function KeyboardShortcuts({ isOpen, onClose }) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            transition={springGentle}
             className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto z-50"
             role="dialog"
             aria-modal="true"
             aria-labelledby="shortcuts-title"
             tabIndex={-1}
           >
-            <div className="bg-[var(--color-grouped-background)] rounded-2xl shadow-2xl overflow-hidden">
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                background: 'rgba(28, 28, 30, 0.92)',
+                backdropFilter: 'blur(60px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(60px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 25px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
+              }}
+            >
               {/* Header */}
               <div className="px-5 pt-5 pb-3 border-b border-[var(--color-separator)]">
                 <h2
@@ -109,12 +122,17 @@ export default function KeyboardShortcuts({ isOpen, onClose }) {
 
               {/* Close button */}
               <div className="px-5 pb-5 pt-2">
-                <button
-                  onClick={onClose}
-                  className="w-full py-3 text-[17px] font-semibold text-[var(--color-tint)] bg-[var(--color-fill)] rounded-xl active:opacity-70 transition-opacity"
+                <motion.button
+                  onClick={() => {
+                    triggerHaptic('light');
+                    onClose();
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={springTactile}
+                  className="w-full py-3 text-[17px] font-semibold text-[var(--color-tint)] bg-[var(--color-fill)] rounded-xl hover:bg-[var(--color-fill-secondary)] transition-colors"
                 >
                   Done
-                </button>
+                </motion.button>
               </div>
             </div>
           </motion.div>

@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'og-image.png'],
       manifest: {
-        name: 'The Vessl - Independent News Reader',
-        short_name: 'The Vessl',
-        description: 'An indie-minded RSS reader with AI summaries. Cut through the noise. Read what matters.',
+        name: 'Kevin - AI News Reader',
+        short_name: 'Kevin',
+        description: 'Your friendly AI-powered RSS reader. Cut through the noise. Read what matters.',
         theme_color: '#1a1a1a',
         background_color: '#0a0a0a',
         display: 'standalone',

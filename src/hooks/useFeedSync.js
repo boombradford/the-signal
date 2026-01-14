@@ -1,6 +1,54 @@
 import { useState, useCallback } from 'react';
 import { fetchFeed, getFaviconUrl } from '../utils/rss';
 import { useFeeds, useArticles } from './useDatabase';
+import { articleOperations } from '../utils/db';
+
+// Tag a single article using the AI API
+async function tagArticle(article) {
+  try {
+    const response = await fetch('/api/tag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: article.title,
+        description: article.description,
+        content: article.content
+      })
+    });
+
+    if (!response.ok) return null;
+
+    const tags = await response.json();
+    await articleOperations.updateTags(article.id, tags);
+    return tags;
+  } catch (err) {
+    console.error('Tagging error:', err);
+    return null;
+  }
+}
+
+// Tag new articles in the background (doesn't block sync)
+async function tagNewArticlesBackground(feedId) {
+  try {
+    // Get untagged articles for this feed
+    const articles = await articleOperations.getByFeed(feedId, 20);
+    const untagged = articles.filter(a => !a.primaryTag);
+
+    if (untagged.length === 0) return;
+
+    // Tag in batches of 3 with small delays to avoid rate limits
+    const batchSize = 3;
+    for (let i = 0; i < untagged.length; i += batchSize) {
+      const batch = untagged.slice(i, i + batchSize);
+      await Promise.all(batch.map(a => tagArticle(a)));
+      if (i + batchSize < untagged.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  } catch (err) {
+    console.error('Background tagging error:', err);
+  }
+}
 
 // Hook for syncing RSS feeds
 export function useFeedSync() {
@@ -11,7 +59,7 @@ export function useFeedSync() {
   const [lastSync, setLastSync] = useState(null);
   const [error, setError] = useState(null);
 
-  // Sync a single feed
+  // Sync a single feed (with force refresh to bypass caches)
   const syncFeed = useCallback(async (feedId) => {
     const feed = feeds.find(f => f.id === feedId);
     if (!feed) return;
@@ -20,7 +68,8 @@ export function useFeedSync() {
     setError(null);
 
     try {
-      const result = await fetchFeed(feed.url);
+      // Force refresh to get latest content, bypassing proxy caches
+      const result = await fetchFeed(feed.url, true);
 
       // Prepare articles for database
       const articles = result.items.map(item => ({
@@ -36,6 +85,11 @@ export function useFeedSync() {
 
       // Add new articles (feedId is passed to addArticles)
       const newCount = await addArticles(articles, feedId);
+
+      // Tag new articles in the background (non-blocking)
+      if (newCount > 0) {
+        tagNewArticlesBackground(feedId);
+      }
 
       // Update feed metadata
       await updateFeed(feed.id, {
@@ -116,6 +170,11 @@ export function useFeedSync() {
       }));
 
       await addArticles(articles, feedId);
+
+      // Tag articles in the background (non-blocking)
+      if (articles.length > 0) {
+        tagNewArticlesBackground(feedId);
+      }
 
       return {
         success: true,

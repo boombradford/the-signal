@@ -1,58 +1,184 @@
 import { motion } from 'framer-motion';
+import { springGentle } from '../utils/animations';
+
+/**
+ * Loading Screen - Premium launch experience
+ *
+ * Design principles:
+ * - Clean, centered layout with ambient glow
+ * - Breathing animation creates life
+ * - SF Pro typography
+ * - Apple-level launch screen quality
+ */
+
+// Kevin Logo - Modern K with friendly wink
+export function KevinLogo({ size = 40, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      className={className}
+      aria-label="Kevin logo"
+    >
+      <path
+        d="M14 8v32M14 24l16-16M14 24l16 16"
+        stroke="white"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="38" cy="14" r="4" fill="white" />
+    </svg>
+  );
+}
+
+// Kevin App Icon
+export function KevinAppIcon({ size = 80, className = '' }) {
+  const iconSize = size * 0.5;
+  return (
+    <div
+      className={`flex items-center justify-center ${className}`}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size * 0.225,
+        background: '#0A84FF'
+      }}
+    >
+      <KevinLogo size={iconSize} />
+    </div>
+  );
+}
 
 export default function LoadingScreen() {
   return (
     <div
-      className="min-h-screen bg-[var(--color-background)] flex items-center justify-center"
+      className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden"
       role="status"
-      aria-label="Loading The Vessl"
     >
+      {/* Ambient glow effect - subtle radial gradient */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center"
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
       >
-        {/* App icon */}
         <motion.div
-          className="w-20 h-20 rounded-[22px] bg-gradient-to-br from-[var(--color-tint)] to-[#5856D6] flex items-center justify-center mb-6"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
           style={{
-            boxShadow: '0 4px 24px rgba(var(--color-tint-rgb), 0.3)'
+            background: 'radial-gradient(circle, rgba(10, 132, 255, 0.15) 0%, rgba(10, 132, 255, 0.05) 40%, transparent 70%)',
+            filter: 'blur(60px)'
           }}
-          aria-hidden="true"
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.6, 0.8, 0.6]
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: 'easeInOut'
+          }}
+        />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={springGentle}
+        className="flex flex-col items-center relative z-10"
+      >
+        {/* App icon with breathing animation */}
+        <motion.div
+          initial={{ y: -8 }}
+          animate={{ y: 0 }}
+          transition={springGentle}
+          className="relative"
         >
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M4 11a9 9 0 0 1 9 9" />
-            <path d="M4 4a16 16 0 0 1 16 16" />
-            <circle cx="5" cy="19" r="1.5" fill="white" />
-          </svg>
+          {/* Icon glow */}
+          <motion.div
+            className="absolute inset-0 rounded-[18px]"
+            style={{
+              background: '#0A84FF',
+              filter: 'blur(20px)',
+              opacity: 0.4
+            }}
+            animate={{
+              scale: [1, 1.15, 1],
+              opacity: [0.3, 0.5, 0.3]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut'
+            }}
+          />
+          <motion.div
+            animate={{
+              scale: [1, 1.02, 1]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut'
+            }}
+          >
+            <KevinAppIcon size={80} className="mb-6 relative z-10" />
+          </motion.div>
         </motion.div>
 
         {/* App name */}
-        <h1 className="font-display font-bold text-2xl text-label mb-2">
-          The Vessl
-        </h1>
+        <motion.h1
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, ...springGentle }}
+          className="text-[22px] text-[#F5F5F7] mb-1"
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            fontWeight: 600,
+            letterSpacing: '-0.024em'
+          }}
+        >
+          kevin<span style={{ color: '#0A84FF' }}>.</span>
+        </motion.h1>
 
-        {/* Loading indicator */}
-        <div className="flex gap-1.5 mt-4" aria-hidden="true">
+        {/* Tagline */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="text-[13px] text-[#86868B] mb-6"
+          style={{ letterSpacing: '-0.008em' }}
+        >
+          Your intelligent reader
+        </motion.p>
+
+        {/* Premium loading indicator - smooth wave */}
+        <div className="flex gap-1.5">
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="w-2 h-2 rounded-full bg-[var(--color-tint)]"
+              className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: '#0A84FF',
+                boxShadow: '0 0 8px rgba(10, 132, 255, 0.5)'
+              }}
               animate={{
-                scale: [1, 1.2, 1],
+                scale: [1, 1.4, 1],
                 opacity: [0.5, 1, 0.5],
               }}
               transition={{
-                duration: 0.8,
+                duration: 1.2,
                 repeat: Infinity,
                 delay: i * 0.15,
-                ease: 'easeInOut'
+                ease: [0.4, 0, 0.2, 1]
               }}
             />
           ))}
         </div>
 
-        <span className="sr-only">Loading application...</span>
+        <span className="sr-only">Loading...</span>
       </motion.div>
     </div>
   );

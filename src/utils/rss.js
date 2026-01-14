@@ -1,10 +1,15 @@
 // RSS Feed Parser Utilities
 
-// CORS proxy for fetching RSS feeds
+// CORS proxy for fetching RSS feeds (with cache-busting support)
 const CORS_PROXIES = [
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
+  { url: 'https://api.allorigins.win/raw?url=', appendTimestamp: true },
+  { url: 'https://corsproxy.io/?', appendTimestamp: false },
 ];
+
+// Generate cache-busting timestamp
+function getCacheBuster() {
+  return `_cb=${Date.now()}`;
+}
 
 // Parse RSS/Atom feed from XML
 export function parseFeed(xmlString, feedUrl) {
@@ -120,16 +125,24 @@ function parseDate(dateString) {
 
 // Extract thumbnail from RSS item
 function extractThumbnail(item) {
-  // Check media:thumbnail
-  const mediaThumbnail = item.querySelector('media\\:thumbnail, thumbnail');
+  // Check media:thumbnail (try multiple selector approaches for browser compatibility)
+  const mediaThumbnail = item.querySelector('media\\:thumbnail') ||
+    item.querySelector('thumbnail') ||
+    item.getElementsByTagName('media:thumbnail')[0];
   if (mediaThumbnail) {
-    return mediaThumbnail.getAttribute('url');
+    const url = mediaThumbnail.getAttribute('url') || mediaThumbnail.textContent;
+    if (url) return url.trim();
   }
 
   // Check media:content
-  const mediaContent = item.querySelector('media\\:content, content');
-  if (mediaContent?.getAttribute('medium') === 'image') {
-    return mediaContent.getAttribute('url');
+  const mediaContents = item.getElementsByTagName('media:content');
+  for (const mc of mediaContents) {
+    const medium = mc.getAttribute('medium');
+    const type = mc.getAttribute('type');
+    if (medium === 'image' || type?.startsWith('image/')) {
+      const url = mc.getAttribute('url');
+      if (url) return url.trim();
+    }
   }
 
   // Check enclosure
@@ -138,26 +151,55 @@ function extractThumbnail(item) {
     return enclosure.getAttribute('url');
   }
 
-  // Extract from content/description
-  const content = getTextContent(item, 'content\\:encoded') || getTextContent(item, 'description');
+  // Check for image element
+  const imageEl = item.querySelector('image > url') || item.querySelector('image');
+  if (imageEl) {
+    const url = imageEl.textContent || imageEl.getAttribute('url');
+    if (url) return url.trim();
+  }
+
+  // Extract from content/description (most reliable fallback)
+  const content = item.getElementsByTagName('content:encoded')[0]?.textContent ||
+    getTextContent(item, 'description');
   return extractImageFromHtml(content);
 }
 
 // Extract thumbnail from Atom entry
 function extractThumbnailAtom(entry) {
-  // Check media elements
-  const mediaThumbnail = entry.querySelector('media\\:thumbnail, thumbnail');
+  // Check media elements (try multiple approaches)
+  const mediaThumbnail = entry.querySelector('media\\:thumbnail') ||
+    entry.querySelector('thumbnail') ||
+    entry.getElementsByTagName('media:thumbnail')[0];
   if (mediaThumbnail) {
-    return mediaThumbnail.getAttribute('url');
+    const url = mediaThumbnail.getAttribute('url') || mediaThumbnail.textContent;
+    if (url) return url.trim();
   }
 
-  // Check links
-  const imageLink = entry.querySelector('link[rel="enclosure"][type^="image"]');
-  if (imageLink) {
-    return imageLink.getAttribute('href');
+  // Check media:content
+  const mediaContents = entry.getElementsByTagName('media:content');
+  for (const mc of mediaContents) {
+    const medium = mc.getAttribute('medium');
+    const type = mc.getAttribute('type');
+    if (medium === 'image' || type?.startsWith('image/')) {
+      const url = mc.getAttribute('url');
+      if (url) return url.trim();
+    }
   }
 
-  // Extract from content
+  // Check links with image types
+  const links = entry.querySelectorAll('link');
+  for (const link of links) {
+    const type = link.getAttribute('type');
+    const rel = link.getAttribute('rel');
+    if (type?.startsWith('image/') || rel === 'enclosure') {
+      const href = link.getAttribute('href');
+      if (href && (type?.startsWith('image/') || href.match(/\.(jpg|jpeg|png|gif|webp)/i))) {
+        return href.trim();
+      }
+    }
+  }
+
+  // Extract from content/summary (most reliable fallback)
   const content = getTextContent(entry, 'content') || getTextContent(entry, 'summary');
   return extractImageFromHtml(content);
 }
@@ -166,8 +208,33 @@ function extractThumbnailAtom(entry) {
 function extractImageFromHtml(html) {
   if (!html) return null;
 
+  // Try src attribute first
   const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return imgMatch?.[1] || null;
+  if (imgMatch?.[1]) {
+    const url = imgMatch[1].trim();
+    // Skip tracking pixels, avatars, and tiny images
+    if (!url.includes('gravatar') &&
+        !url.includes('pixel') &&
+        !url.includes('tracking') &&
+        !url.includes('1x1') &&
+        !url.includes('avatar')) {
+      return url;
+    }
+  }
+
+  // Try data-src (lazy loading)
+  const dataSrcMatch = html.match(/<img[^>]+data-src=["']([^"']+)["']/i);
+  if (dataSrcMatch?.[1]) return dataSrcMatch[1].trim();
+
+  // Try srcset
+  const srcsetMatch = html.match(/<img[^>]+srcset=["']([^"'\s,]+)/i);
+  if (srcsetMatch?.[1]) return srcsetMatch[1].trim();
+
+  // Try figure/picture sources
+  const sourceMatch = html.match(/<source[^>]+srcset=["']([^"'\s,]+)/i);
+  if (sourceMatch?.[1]) return sourceMatch[1].trim();
+
+  return null;
 }
 
 // Clean HTML for preview
@@ -192,16 +259,26 @@ function cleanHtml(html) {
   return text.length > 300 ? text.substring(0, 300) + '...' : text;
 }
 
-// Fetch feed with CORS handling
-export async function fetchFeed(url) {
+// Fetch feed with CORS handling and cache-busting
+export async function fetchFeed(url, forceRefresh = false) {
   let lastError;
+
+  // Add cache-busting to URL if forcing refresh
+  const cacheBuster = forceRefresh ? getCacheBuster() : '';
+  const urlWithCacheBust = forceRefresh && !url.includes('?')
+    ? `${url}?${cacheBuster}`
+    : forceRefresh
+      ? `${url}&${cacheBuster}`
+      : url;
 
   // Try direct fetch first (works if CORS is enabled on the feed)
   try {
-    const response = await fetch(url, {
+    const response = await fetch(urlWithCacheBust, {
       headers: {
-        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml'
-      }
+        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml',
+        'Cache-Control': forceRefresh ? 'no-cache, no-store' : 'max-age=300',
+      },
+      cache: forceRefresh ? 'no-store' : 'default'
     });
 
     if (response.ok) {
@@ -212,10 +289,21 @@ export async function fetchFeed(url) {
     lastError = e;
   }
 
-  // Try CORS proxies
+  // Try CORS proxies with cache-busting
   for (const proxy of CORS_PROXIES) {
     try {
-      const response = await fetch(proxy + encodeURIComponent(url));
+      // For allorigins, append timestamp to bypass their cache
+      let proxyUrl = proxy.url + encodeURIComponent(url);
+      if (proxy.appendTimestamp || forceRefresh) {
+        proxyUrl += (proxyUrl.includes('?') ? '&' : '?') + getCacheBuster();
+      }
+
+      const response = await fetch(proxyUrl, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        },
+        cache: 'no-store'
+      });
 
       if (response.ok) {
         const text = await response.text();

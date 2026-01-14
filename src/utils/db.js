@@ -256,6 +256,109 @@ export const articleOperations = {
 
     if (error) throw error;
     return true;
+  },
+
+  async updateTags(id, tags) {
+    const { error } = await supabase
+      .from('articles')
+      .update({
+        primary_tag: tags.primaryTag,
+        secondary_tags: tags.secondaryTags,
+        sentiment: tags.sentiment,
+        key_topics: tags.keyTopics
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  },
+
+  async getByTag(tag, limit = 100) {
+    const userId = await getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('primary_tag', tag)
+      .order('pub_date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return (data || []).map(mapArticle);
+  },
+
+  async getUntagged(limit = 50) {
+    const userId = await getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('user_id', userId)
+      .is('primary_tag', null)
+      .order('pub_date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return (data || []).map(mapArticle);
+  },
+
+  // Save a clipped article from URL scraping
+  async saveClip(article) {
+    const userId = await getUserId();
+    if (!userId) throw new Error('Not authenticated');
+
+    // Generate a unique GUID for clipped articles
+    const guid = `clip_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    const { data, error } = await supabase
+      .from('articles')
+      .insert({
+        feed_id: null, // Clipped articles have no feed
+        user_id: userId,
+        guid,
+        title: article.title || 'Untitled',
+        link: article.url,
+        description: article.description?.slice(0, 500) || '',
+        content: article.content?.slice(0, 50000) || '',
+        pub_date: article.publishedDate || new Date().toISOString(),
+        author: article.author || article.siteName || '',
+        thumbnail: article.thumbnail || null,
+        is_read: false,
+        is_saved: true,
+        created_at: new Date().toISOString(),
+        primary_tag: article.category || null
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Return with additional clip metadata
+    return {
+      ...mapArticle(data),
+      siteName: article.siteName,
+      keyPoints: article.keyPoints || [],
+      isClip: true
+    };
+  },
+
+  // Get all clipped articles (articles without a feed_id)
+  async getClips() {
+    const userId = await getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('user_id', userId)
+      .is('feed_id', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(mapArticle);
   }
 };
 
@@ -274,7 +377,12 @@ function mapArticle(article) {
     thumbnail: article.thumbnail,
     isRead: article.is_read,
     isSaved: article.is_saved,
-    createdAt: article.created_at
+    createdAt: article.created_at,
+    // AI-generated tags
+    primaryTag: article.primary_tag || null,
+    secondaryTags: article.secondary_tags || [],
+    sentiment: article.sentiment || null,
+    keyTopics: article.key_topics || []
   };
 }
 
@@ -313,11 +421,11 @@ export const summaryOperations = {
 // Settings operations (using localStorage for now, can migrate to Supabase later)
 export const settingsOperations = {
   async get(key) {
-    return localStorage.getItem(`vessl_${key}`);
+    return localStorage.getItem(`kevin_${key}`);
   },
 
   async set(key, value) {
-    localStorage.setItem(`vessl_${key}`, value);
+    localStorage.setItem(`kevin_${key}`, value);
     return true;
   }
 };

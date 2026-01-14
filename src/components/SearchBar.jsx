@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { springSnappy, springTactile, triggerHaptic } from '../utils/animations';
 
 const Icons = {
   search: (
@@ -39,37 +40,67 @@ export default function SearchBar({ value, onChange, onClear, placeholder = "Sea
   }, [value, onClear]);
 
   return (
-    <div className="relative">
+    <motion.div
+      className="relative"
+      initial={false}
+      animate={isFocused ? { scale: 1.005 } : { scale: 1 }}
+      transition={springTactile}
+    >
       <div
-        className={`flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius-md)] transition-all ${
-          isFocused
-            ? 'bg-[var(--color-background)] ring-2 ring-[var(--color-tint)]'
-            : 'bg-[var(--color-fill)]'
-        }`}
+        className={`flex items-center gap-3 h-12 px-4 rounded-2xl transition-all duration-200`}
+        style={{
+          background: isFocused
+            ? 'rgba(10, 132, 255, 0.06)'
+            : 'rgba(255, 255, 255, 0.04)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          border: isFocused
+            ? '1px solid rgba(10, 132, 255, 0.4)'
+            : '1px solid rgba(255, 255, 255, 0.06)',
+          boxShadow: isFocused
+            ? '0 0 0 3px rgba(10, 132, 255, 0.12), 0 4px 20px rgba(0, 0, 0, 0.3)'
+            : '0 2px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.04)'
+        }}
       >
-        <span className={`transition-colors ${isFocused ? 'text-[var(--color-tint)]' : 'text-label-tertiary'}`}>
+        <motion.span
+          className="text-label-tertiary"
+          animate={isFocused ? { scale: 1.05, color: 'var(--color-tint)' } : { scale: 1 }}
+          transition={springTactile}
+        >
           {Icons.search}
-        </span>
+        </motion.span>
 
         <input
           ref={inputRef}
           type="search"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            triggerHaptic('selection');
+          }}
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-[15px] text-label placeholder:text-label-tertiary outline-none"
+          className="flex-1 bg-transparent text-[15px] text-label placeholder:text-label-tertiary/60 outline-none"
+          style={{
+            fontWeight: 500,
+            letterSpacing: '-0.016em'
+          }}
           aria-label="Search articles"
         />
 
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {value && (
             <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              onClick={onClear}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={springTactile}
+              whileTap={{ scale: 0.85 }}
+              onClick={() => {
+                triggerHaptic('light');
+                onClear();
+              }}
               className="text-label-tertiary hover:text-label-secondary transition-colors"
               aria-label="Clear search"
             >
@@ -79,14 +110,28 @@ export default function SearchBar({ value, onChange, onClear, placeholder = "Sea
         </AnimatePresence>
       </div>
 
-      {/* Keyboard hint */}
-      {!isFocused && !value && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[11px] text-label-tertiary bg-[var(--color-fill-secondary)] rounded">
-            <span className="text-[10px]">⌘</span>K
-          </kbd>
-        </div>
-      )}
-    </div>
+      {/* Keyboard hint - refined with better styling */}
+      <AnimatePresence>
+        {!isFocused && !value && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+          >
+            <kbd
+              className="hidden sm:inline-flex items-center gap-0.5 px-2 py-1 text-[10px] font-semibold text-label-tertiary rounded-md"
+              style={{
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                letterSpacing: '0.02em'
+              }}
+            >
+              <span>⌘</span>K
+            </kbd>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
