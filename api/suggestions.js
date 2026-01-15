@@ -1,6 +1,6 @@
 /**
  * Feed Suggestions API
- * 
+ *
  * Intelligent feed recommendations based on reading patterns.
  * Uses Claude for personalized suggestions.
  */
@@ -51,11 +51,27 @@ const FEED_DATABASE = {
     { url: 'https://www.theguardian.com/world/rss', name: 'The Guardian World', description: 'International journalism' },
     { url: 'https://feeds.reuters.com/Reuters/worldNews', name: 'Reuters', description: 'Breaking world news' },
   ],
+  politics: [
+    { url: 'https://feeds.npr.org/1014/rss.xml', name: 'NPR Politics', description: 'US political coverage' },
+    { url: 'https://www.politico.com/rss/politics08.xml', name: 'Politico', description: 'Political news and analysis' },
+    { url: 'https://thehill.com/feed/', name: 'The Hill', description: 'Congressional and policy news' },
+    { url: 'https://fivethirtyeight.com/politics/feed/', name: 'FiveThirtyEight', description: 'Data-driven political analysis' },
+  ],
   culture: [
     { url: 'https://www.newyorker.com/feed/culture', name: 'The New Yorker', description: 'Arts, culture, and criticism' },
     { url: 'https://pitchfork.com/feed/feed-news/rss', name: 'Pitchfork', description: 'Music news and reviews' },
     { url: 'https://www.polygon.com/rss/index.xml', name: 'Polygon', description: 'Gaming and entertainment' },
     { url: 'https://www.vulture.com/rss/index.xml', name: 'Vulture', description: 'Entertainment and pop culture' },
+  ],
+  health: [
+    { url: 'https://www.statnews.com/feed/', name: 'STAT News', description: 'Health and medicine reporting' },
+    { url: 'https://www.medicalnewstoday.com/newsfeeds/rss', name: 'Medical News Today', description: 'Health news and information' },
+    { url: 'https://www.health.harvard.edu/blog/feed', name: 'Harvard Health', description: 'Evidence-based health advice' },
+  ],
+  sports: [
+    { url: 'https://www.espn.com/espn/rss/news', name: 'ESPN', description: 'Sports news and scores' },
+    { url: 'https://theathletic.com/feeds/rss/news/', name: 'The Athletic', description: 'In-depth sports journalism' },
+    { url: 'https://www.si.com/rss/si_topstories.rss', name: 'Sports Illustrated', description: 'Sports coverage and analysis' },
   ],
   newsletters: [
     { url: 'https://www.platformer.news/rss/', name: 'Platformer', description: 'Technology and democracy' },
@@ -66,26 +82,64 @@ const FEED_DATABASE = {
   ]
 };
 
+// Map user tags (from AI tagging) to feed categories
+const TAG_TO_CATEGORY_MAP = {
+  // Direct mappings
+  'tech': ['technology', 'artificial_intelligence'],
+  'technology': ['technology', 'artificial_intelligence'],
+  'finance': ['finance'],
+  'politics': ['politics', 'world'],
+  'science': ['science'],
+  'culture': ['culture'],
+  'sports': ['sports'],
+  'health': ['health', 'science'],
+  'world': ['world', 'politics'],
+  // AI-specific
+  'ai': ['artificial_intelligence', 'technology'],
+  'artificial intelligence': ['artificial_intelligence', 'technology'],
+  // Variations
+  'business': ['finance'],
+  'money': ['finance'],
+  'markets': ['finance'],
+  'crypto': ['finance'],
+  'gaming': ['culture'],
+  'entertainment': ['culture'],
+  'music': ['culture'],
+  'movies': ['culture'],
+  'news': ['world', 'politics'],
+  'medicine': ['health', 'science'],
+  'space': ['science'],
+  'environment': ['science'],
+};
+
 // Analyze reading patterns from article history
 function analyzeReadingPatterns(articles) {
   const patterns = {
     categories: {},
     sources: {},
     topics: [],
-    engagementRate: 0
+    engagementRate: 0,
+    feedTitles: {}
   };
 
   articles.forEach(article => {
-    const category = article.primaryTag || article.category || 'technology';
-    patterns.categories[category] = (patterns.categories[category] || 0) + 1;
+    // Track primary tag (normalized to lowercase)
+    const tag = (article.primaryTag || '').toLowerCase();
+    if (tag) {
+      patterns.categories[tag] = (patterns.categories[tag] || 0) + 1;
+    }
 
+    // Track feed sources
     const source = article.feedTitle || article.siteName || 'Unknown';
     patterns.sources[source] = (patterns.sources[source] || 0) + 1;
+    patterns.feedTitles[source] = true;
 
-    if (article.keyTopics) {
+    // Track key topics
+    if (article.keyTopics && Array.isArray(article.keyTopics)) {
       patterns.topics.push(...article.keyTopics);
     }
 
+    // Track engagement
     if (article.isSaved || article.summary) {
       patterns.engagementRate++;
     }
@@ -96,6 +150,30 @@ function analyzeReadingPatterns(articles) {
     : 0;
 
   return patterns;
+}
+
+// Map user tags to feed database categories
+function mapTagsToCategories(tags) {
+  const categories = new Set();
+
+  tags.forEach(tag => {
+    const normalizedTag = tag.toLowerCase().trim();
+    const mappedCategories = TAG_TO_CATEGORY_MAP[normalizedTag];
+
+    if (mappedCategories) {
+      mappedCategories.forEach(cat => categories.add(cat));
+    } else {
+      // Try partial matching
+      for (const [key, cats] of Object.entries(TAG_TO_CATEGORY_MAP)) {
+        if (normalizedTag.includes(key) || key.includes(normalizedTag)) {
+          cats.forEach(cat => categories.add(cat));
+          break;
+        }
+      }
+    }
+  });
+
+  return Array.from(categories);
 }
 
 export default async function handler(req, res) {
@@ -122,29 +200,47 @@ export default async function handler(req, res) {
     const currentFeedUrls = currentFeeds.map(f => f.url?.toLowerCase() || '');
     const suggestions = [];
 
+    // Combine all articles for analysis
     const allArticles = [...readHistory, ...savedArticles];
     const patterns = analyzeReadingPatterns(allArticles);
 
-    const topCategories = Object.entries(patterns.categories)
+    // Get top categories from reading patterns
+    const topUserTags = Object.entries(patterns.categories)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([cat]) => cat.toLowerCase().replace(/\s+/g, '_'));
+      .slice(0, 5)
+      .map(([tag]) => tag);
+
+    // Map user tags to feed categories
+    const topCategories = mapTagsToCategories(topUserTags);
+
+    // If no categories found from tags, use defaults based on any available data
+    if (topCategories.length === 0 && allArticles.length > 0) {
+      // Analyze article titles/content for interests
+      topCategories.push('technology', 'world');
+    }
 
     // Personalized suggestions based on reading patterns
     if (mode === 'personalized' || mode === 'both') {
+      // Add feeds from matched categories
       for (const category of topCategories) {
-        const categoryFeeds = FEED_DATABASE[category] || FEED_DATABASE.technology || [];
+        const categoryFeeds = FEED_DATABASE[category] || [];
         const newFeeds = categoryFeeds.filter(
           feed => !currentFeedUrls.includes(feed.url.toLowerCase())
+        );
+
+        const matchedTag = topUserTags.find(tag =>
+          TAG_TO_CATEGORY_MAP[tag]?.includes(category)
         );
 
         newFeeds.slice(0, 2).forEach(feed => {
           suggestions.push({
             ...feed,
             category,
-            reason: `Based on your interest in ${category.replace(/_/g, ' ')}`,
+            reason: matchedTag
+              ? `Based on your interest in ${matchedTag}`
+              : `Matches your reading patterns`,
             type: 'personalized',
-            score: patterns.categories[category] || 1
+            score: patterns.categories[matchedTag] || 5
           });
         });
       }
@@ -167,6 +263,8 @@ export default async function handler(req, res) {
 Recent reads:
 ${recentTitles}
 
+Categories available: technology, artificial_intelligence, finance, science, world, politics, culture, health, sports, newsletters
+
 Return JSON array: [{"category": "string", "reason": "string"}]`
             }]
           });
@@ -177,9 +275,10 @@ Return JSON array: [{"category": "string", "reason": "string"}]`
 
           aiSuggestions.forEach(suggestion => {
             const categoryKey = suggestion.category.toLowerCase().replace(/\s+/g, '_');
-            const matchingFeeds = FEED_DATABASE[categoryKey] || FEED_DATABASE.technology;
+            const matchingFeeds = FEED_DATABASE[categoryKey];
             const newFeed = matchingFeeds?.find(
-              f => !currentFeedUrls.includes(f.url.toLowerCase())
+              f => !currentFeedUrls.includes(f.url.toLowerCase()) &&
+                   !suggestions.find(s => s.url === f.url)
             );
 
             if (newFeed) {
@@ -200,33 +299,16 @@ Return JSON array: [{"category": "string", "reason": "string"}]`
 
     // Discovery suggestions for exploring new categories
     if (mode === 'discovery' || mode === 'both') {
-      const allFeeds = Object.values(FEED_DATABASE).flat();
-      const popularFeeds = allFeeds
-        .filter(feed => !currentFeedUrls.includes(feed.url.toLowerCase()))
-        .slice(0, 5);
-
-      popularFeeds.forEach(feed => {
-        const category = Object.entries(FEED_DATABASE)
-          .find(([, feeds]) => feeds.includes(feed))?.[0] || 'technology';
-
-        suggestions.push({
-          ...feed,
-          category,
-          reason: 'Popular source',
-          type: 'discovery',
-          score: 5
-        });
-      });
-
-      // Suggest unexplored categories
-      const userCategories = Object.keys(patterns.categories).map(c => c.toLowerCase().replace(/\s+/g, '_'));
+      // Suggest feeds from categories the user hasn't explored
+      const exploredCategories = new Set(topCategories);
       const unexploredCategories = Object.keys(FEED_DATABASE)
-        .filter(cat => !userCategories.includes(cat));
+        .filter(cat => !exploredCategories.has(cat));
 
-      unexploredCategories.slice(0, 2).forEach(category => {
+      unexploredCategories.slice(0, 3).forEach(category => {
         const feeds = FEED_DATABASE[category];
         const topFeed = feeds?.find(
-          f => !currentFeedUrls.includes(f.url.toLowerCase())
+          f => !currentFeedUrls.includes(f.url.toLowerCase()) &&
+               !suggestions.find(s => s.url === f.url)
         );
 
         if (topFeed) {
@@ -239,6 +321,28 @@ Return JSON array: [{"category": "string", "reason": "string"}]`
           });
         }
       });
+
+      // Add some popular feeds as discovery
+      const popularCategories = ['technology', 'world', 'newsletters'];
+      popularCategories.forEach(category => {
+        if (!exploredCategories.has(category)) {
+          const feeds = FEED_DATABASE[category];
+          const topFeed = feeds?.find(
+            f => !currentFeedUrls.includes(f.url.toLowerCase()) &&
+                 !suggestions.find(s => s.url === f.url)
+          );
+
+          if (topFeed) {
+            suggestions.push({
+              ...topFeed,
+              category,
+              reason: 'Popular source',
+              type: 'discovery',
+              score: 5
+            });
+          }
+        }
+      });
     }
 
     // Deduplicate and sort by score
@@ -247,12 +351,18 @@ Return JSON array: [{"category": "string", "reason": "string"}]`
       .sort((a, b) => b.score - a.score)
       .slice(0, 12);
 
+    // Format top categories for display (use original user tags)
+    const displayCategories = topUserTags.length > 0
+      ? topUserTags.slice(0, 5)
+      : (topCategories.length > 0 ? topCategories.slice(0, 5) : []);
+
     return res.status(200).json({
       suggestions: uniqueSuggestions,
       patterns: {
-        topCategories,
+        topCategories: displayCategories,
         articleCount: allArticles.length,
-        engagementRate: patterns.engagementRate
+        engagementRate: patterns.engagementRate,
+        feedCount: Object.keys(patterns.feedTitles).length
       }
     });
 

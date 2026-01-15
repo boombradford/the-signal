@@ -2,7 +2,7 @@ import { memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { formatRelativeTime } from '../utils/rss';
 import { AVAILABLE_TAGS } from '../hooks/useAI';
-import { springTactile, springMicro, triggerHaptic } from '../utils/animations';
+import { springQuick, easeApple, triggerHaptic } from '../utils/animations';
 import { getThumbnailUrl } from '../utils/imageProxy';
 
 /**
@@ -12,8 +12,8 @@ import { getThumbnailUrl } from '../utils/imageProxy';
  * - SF Pro system font with precise letter-spacing
  * - Clean hierarchy through weight and size
  * - Generous whitespace
- * - Subtle interactions
- * 
+ * - Subtle, purposeful interactions
+ *
  * Density modes:
  * - comfortable: Full card with description, thumbnail, generous spacing
  * - compact: Tighter layout, no description, smaller thumbnail
@@ -40,10 +40,43 @@ function estimateReadTime(content) {
   return minutes < 1 ? '1 min' : `${minutes} min`;
 }
 
-const ArticleCard = memo(function ArticleCard({ 
-  article, 
-  feedTitle, 
-  onClick, 
+// Detect if content is HN-style metadata
+function isHNContent(content) {
+  return content && (
+    content.includes('Article URL:') ||
+    content.includes('Comments URL:') ||
+    (content.includes('Points:') && content.includes('# Comments:'))
+  );
+}
+
+// Parse HN metadata from content
+function parseHNMetadata(content) {
+  const pointsMatch = content.match(/Points:\s*(\d+)/);
+  const commentsMatch = content.match(/#\s*Comments:\s*(\d+)/);
+  return {
+    points: pointsMatch ? parseInt(pointsMatch[1], 10) : null,
+    comments: commentsMatch ? parseInt(commentsMatch[1], 10) : null
+  };
+}
+
+// HN engagement badge icons
+const HNIcons = {
+  points: (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  ),
+  comments: (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  )
+};
+
+const ArticleCard = memo(function ArticleCard({
+  article,
+  feedTitle,
+  onClick,
   searchQuery,
   density = 'comfortable' // 'comfortable' | 'compact'
 }) {
@@ -51,6 +84,11 @@ const ArticleCard = memo(function ArticleCard({
   const readTime = estimateReadTime(article.content || article.description);
   const tag = article.primaryTag ? AVAILABLE_TAGS.find(t => t.id === article.primaryTag) : null;
   const isCompact = density === 'compact';
+
+  // Detect and parse HN content
+  const descriptionContent = article.content || article.description || '';
+  const hasHNMetadata = isHNContent(descriptionContent);
+  const hnMetadata = hasHNMetadata ? parseHNMetadata(descriptionContent) : null;
 
   // Premium tap handler with haptic feedback
   const handleTap = useCallback(() => {
@@ -61,23 +99,20 @@ const ArticleCard = memo(function ArticleCard({
   return (
     <motion.article
       onClick={handleTap}
-      initial={{ opacity: 0, y: isCompact ? 8 : 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={springMicro}
-      whileHover={{
-        y: -2,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.06)',
-        transition: { duration: 0.2, ease: 'easeOut' }
-      }}
-      whileTap={{
-        scale: 0.98,
-        y: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)'
-      }}
-      className={`group cursor-pointer rounded-2xl ${isRead ? 'opacity-50' : ''} ${
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={easeApple}
+      whileTap={{ scale: 0.99 }}
+      className={`group cursor-pointer rounded-2xl relative ${isRead ? 'opacity-50' : ''} ${
         isCompact ? 'py-2.5 px-2.5 -mx-2.5' : 'py-4 px-3 -mx-3'
-      }`}
+      } transition-all duration-200`}
+      style={{
+        background: 'transparent',
+      }}
+      whileHover={{
+        backgroundColor: 'rgba(10, 132, 255, 0.04)',
+        boxShadow: '0 0 0 1px rgba(10, 132, 255, 0.1), 0 4px 20px rgba(10, 132, 255, 0.08)',
+      }}
       role="article"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -86,11 +121,6 @@ const ArticleCard = memo(function ArticleCard({
           handleTap();
         }
       }}
-      style={{
-        willChange: 'transform',
-        backfaceVisibility: 'hidden',
-        transition: 'box-shadow 0.2s ease'
-      }}
     >
       <div className={`flex ${isCompact ? 'gap-3' : 'gap-4'}`}>
         {/* Content */}
@@ -98,23 +128,9 @@ const ArticleCard = memo(function ArticleCard({
           {/* Meta row */}
           <div className={`flex items-center gap-2 ${isCompact ? 'mb-1' : 'mb-2'}`}>
             {!isRead && (
-              <motion.span
-                className="text-[var(--color-tint)] relative"
-                animate={{
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut'
-                }}
-              >
-                <span
-                  className="absolute inset-0 rounded-full blur-sm bg-[var(--color-tint)]"
-                  style={{ opacity: 0.6 }}
-                />
+              <span className="text-[var(--color-tint)]">
                 {Icons.unread}
-              </motion.span>
+              </span>
             )}
             <span
               className={`text-[var(--color-label-secondary)] truncate max-w-[140px] ${
@@ -154,14 +170,47 @@ const ArticleCard = memo(function ArticleCard({
             {article.title}
           </h3>
 
-          {/* Description - only in comfortable mode */}
-          {!isCompact && article.description && (
-            <p
-              className="text-[15px] text-[var(--color-label-secondary)] leading-[1.4] line-clamp-2 mb-2"
-              style={{ letterSpacing: '-0.016em' }}
-            >
-              {article.description}
-            </p>
+          {/* Description or HN engagement badges */}
+          {!isCompact && (
+            hasHNMetadata && hnMetadata ? (
+              // HN content: show elegant engagement badges
+              <div className="flex items-center gap-2 mb-2">
+                {hnMetadata.points !== null && hnMetadata.points > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] font-semibold"
+                    style={{
+                      background: hnMetadata.points >= 100 ? '#FF9500' : 'rgba(255, 149, 0, 0.12)',
+                      color: hnMetadata.points >= 100 ? 'white' : '#FF9500',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {HNIcons.points}
+                    {hnMetadata.points}
+                  </span>
+                )}
+                {hnMetadata.comments !== null && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] font-semibold"
+                    style={{
+                      background: hnMetadata.comments >= 50 ? 'var(--color-tint)' : 'rgba(10, 132, 255, 0.12)',
+                      color: hnMetadata.comments >= 50 ? 'white' : '#0A84FF',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {HNIcons.comments}
+                    {hnMetadata.comments}
+                  </span>
+                )}
+              </div>
+            ) : article.description ? (
+              // Regular content: show description
+              <p
+                className="text-[15px] text-[var(--color-label-secondary)] leading-[1.4] line-clamp-2 mb-2"
+                style={{ letterSpacing: '-0.016em' }}
+              >
+                {article.description}
+              </p>
+            ) : null
           )}
 
           {/* Footer */}
@@ -178,36 +227,49 @@ const ArticleCard = memo(function ArticleCard({
             )}
 
             {article.isSaved && (
-              <span className="text-[var(--color-tint)] ml-auto">
-                {Icons.saved}
-              </span>
+              <motion.span
+                className="ml-auto text-[var(--color-tint)]"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </motion.span>
             )}
           </div>
         </div>
 
         {/* Thumbnail - different sizes based on density */}
         {article.thumbnail && (
-          <motion.div
+          <div
             className={`flex-shrink-0 rounded-xl overflow-hidden bg-[var(--color-fill)] ${
               isCompact ? 'w-[60px] h-[60px]' : 'w-[88px] h-[88px]'
             }`}
-            whileHover={{ scale: 1.02 }}
-            transition={springTactile}
             style={{
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06)'
             }}
           >
             <img
               src={getThumbnailUrl(article.thumbnail)}
               alt=""
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-cover"
               loading="lazy"
               referrerPolicy="no-referrer"
               onError={(e) => {
                 e.target.parentElement.style.display = 'none';
               }}
             />
-          </motion.div>
+          </div>
         )}
       </div>
     </motion.article>
@@ -216,123 +278,43 @@ const ArticleCard = memo(function ArticleCard({
 
 export default ArticleCard;
 
-// Premium shimmer skeleton with Apple-style gradient animation
+// Simple skeleton - no shimmer animation
 export function ArticleSkeleton({ density = 'comfortable' }) {
   const isCompact = density === 'compact';
-  
+
   return (
-    <motion.div
-      className={isCompact ? 'py-2.5' : 'py-4'}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
+    <div className={isCompact ? 'py-2.5' : 'py-4'}>
       <div className={`flex ${isCompact ? 'gap-3' : 'gap-4'}`}>
         <div className="flex-1 min-w-0">
           {/* Meta skeleton */}
           <div className={`flex items-center gap-2 ${isCompact ? 'mb-1' : 'mb-2'}`}>
             <div className="h-1.5 w-1.5 bg-[var(--color-fill-secondary)] rounded-full" />
-            <motion.div
-              className={`rounded ${isCompact ? 'h-3 w-16' : 'h-3.5 w-20'}`}
-              style={{ background: 'var(--color-fill)' }}
-              animate={{
-                background: [
-                  'rgba(118, 118, 128, 0.12)',
-                  'rgba(118, 118, 128, 0.24)',
-                  'rgba(118, 118, 128, 0.12)'
-                ]
-              }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className={`rounded ${isCompact ? 'h-3 w-10' : 'h-3.5 w-12'}`}
-              style={{ background: 'var(--color-fill)' }}
-              animate={{
-                background: [
-                  'rgba(118, 118, 128, 0.12)',
-                  'rgba(118, 118, 128, 0.24)',
-                  'rgba(118, 118, 128, 0.12)'
-                ]
-              }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.1 }}
-            />
+            <div className={`rounded bg-[var(--color-fill)] ${isCompact ? 'h-3 w-16' : 'h-3.5 w-20'}`} />
+            <div className={`rounded bg-[var(--color-fill)] ${isCompact ? 'h-3 w-10' : 'h-3.5 w-12'}`} />
           </div>
-          
+
           {/* Title skeleton */}
           <div className={`space-y-1.5 ${isCompact ? 'mb-1' : 'mb-2'}`}>
-            <motion.div
-              className={`w-full rounded ${isCompact ? 'h-4' : 'h-5'}`}
-              style={{ background: 'var(--color-fill)' }}
-              animate={{
-                background: [
-                  'rgba(118, 118, 128, 0.12)',
-                  'rgba(118, 118, 128, 0.24)',
-                  'rgba(118, 118, 128, 0.12)'
-                ]
-              }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
-            />
+            <div className={`w-full rounded bg-[var(--color-fill)] ${isCompact ? 'h-4' : 'h-5'}`} />
             {!isCompact && (
-              <motion.div
-                className="h-5 w-4/5 rounded"
-                style={{ background: 'var(--color-fill)' }}
-                animate={{
-                  background: [
-                    'rgba(118, 118, 128, 0.12)',
-                    'rgba(118, 118, 128, 0.24)',
-                    'rgba(118, 118, 128, 0.12)'
-                  ]
-                }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-              />
+              <div className="h-5 w-4/5 rounded bg-[var(--color-fill)]" />
             )}
           </div>
-          
+
           {/* Description skeleton - only comfortable mode */}
           {!isCompact && (
             <div className="space-y-1">
-              <motion.div
-                className="h-4 w-full rounded"
-                style={{ background: 'var(--color-fill)' }}
-                animate={{
-                  background: [
-                    'rgba(118, 118, 128, 0.12)',
-                    'rgba(118, 118, 128, 0.24)',
-                    'rgba(118, 118, 128, 0.12)'
-                  ]
-                }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
-              />
-              <motion.div
-                className="h-4 w-3/4 rounded"
-                style={{ background: 'var(--color-fill)' }}
-                animate={{
-                  background: [
-                    'rgba(118, 118, 128, 0.12)',
-                    'rgba(118, 118, 128, 0.24)',
-                    'rgba(118, 118, 128, 0.12)'
-                  ]
-                }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-              />
+              <div className="h-4 w-full rounded bg-[var(--color-fill-secondary)]" />
+              <div className="h-4 w-3/4 rounded bg-[var(--color-fill-secondary)]" />
             </div>
           )}
         </div>
-        
+
         {/* Thumbnail skeleton */}
-        <motion.div
-          className={`flex-shrink-0 rounded-xl ${isCompact ? 'w-[60px] h-[60px]' : 'w-[88px] h-[88px]'}`}
-          style={{ background: 'var(--color-fill)' }}
-          animate={{
-            background: [
-              'rgba(118, 118, 128, 0.12)',
-              'rgba(118, 118, 128, 0.24)',
-              'rgba(118, 118, 128, 0.12)'
-            ]
-          }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+        <div
+          className={`flex-shrink-0 rounded-xl bg-[var(--color-fill)] ${isCompact ? 'w-[60px] h-[60px]' : 'w-[88px] h-[88px]'}`}
         />
       </div>
-    </motion.div>
+    </div>
   );
 }

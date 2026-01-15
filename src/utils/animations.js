@@ -1,144 +1,132 @@
 /**
- * Kevin Animation System
+ * Kevin Animation System - Premium Edition
  *
- * Premium Apple-style spring animations inspired by iOS UIKit, 
- * SwiftUI, and the work of engineers like Kyle Bashour.
- * 
- * These springs are calibrated to feel natural, responsive, 
- * and refined - the hallmark of Apple's interface design.
+ * Calibrated for Apple, Stripe, Linear quality.
+ *
+ * Core principles:
+ * - Critically damped or near-critically damped springs
+ * - No visible bounce or overshoot
+ * - Opacity leads, movement follows
+ * - Subtle distances (4-8px max)
+ * - Quick, precise timing
+ * - Static after settling - no continuous animations
  */
 
 // =============================================================================
-// CORE SPRINGS - The foundation of all motion
+// PREMIUM SPRINGS - Critically damped, no bounce
 // =============================================================================
 
 /**
- * Default Spring - The balanced, everyday spring
- * Use for: general transitions, state changes, reveals
+ * Quick Spring - Primary interaction spring
+ * Use for: buttons, toggles, immediate feedback
+ * Damping ratio ~1.0 (critically damped)
  */
-export const springDefault = {
-  type: 'spring',
-  stiffness: 300,
-  damping: 30,
-  mass: 1
-};
-
-/**
- * Snappy Spring - Quick, responsive feedback
- * Use for: button presses, toggles, immediate interactions
- */
-export const springSnappy = {
-  type: 'spring',
-  stiffness: 450,
-  damping: 32,
-  mass: 0.8
-};
-
-/**
- * Gentle Spring - Smooth, elegant movements
- * Use for: modals, sheets, larger UI movements
- */
-export const springGentle = {
-  type: 'spring',
-  stiffness: 180,
-  damping: 24,
-  mass: 1
-};
-
-/**
- * Bouncy Spring - Subtle delight with slight overshoot
- * Use for: celebratory moments, attention-drawing animations
- */
-export const springBouncy = {
+export const springQuick = {
   type: 'spring',
   stiffness: 400,
-  damping: 18,
-  mass: 0.9
-};
-
-/**
- * Slow Spring - Dramatic, purposeful reveals
- * Use for: hero animations, dramatic transitions
- */
-export const springSlow = {
-  type: 'spring',
-  stiffness: 120,
-  damping: 18,
-  mass: 1.4
-};
-
-/**
- * Tactile Spring - The satisfying "click" feel
- * Use for: buttons, cards, interactive elements
- * This is the most iOS-like spring for interactions
- */
-export const springTactile = {
-  type: 'spring',
-  stiffness: 600,
   damping: 40,
-  mass: 0.5
+  mass: 1
 };
 
 /**
- * Micro Spring - For tiny, delightful details
- * Use for: icons, badges, small UI elements
+ * Smooth Spring - General UI transitions
+ * Use for: cards, reveals, state changes
+ * Damping ratio ~0.95 (near-critical, minimal overshoot)
  */
-export const springMicro = {
+export const springSmooth = {
   type: 'spring',
-  stiffness: 500,
-  damping: 28,
-  mass: 0.4
+  stiffness: 300,
+  damping: 34,
+  mass: 1
 };
 
 /**
- * Heavy Spring - Weighty, substantial movements
- * Use for: full-screen transitions, large content
+ * Sheet Spring - Bottom sheets and modals
+ * Use for: sheets, modals, large surfaces
+ * Slightly underdamped for satisfying settle
  */
-export const springHeavy = {
+export const springSheet = {
   type: 'spring',
-  stiffness: 240,
-  damping: 32,
-  mass: 1.6
-};
-
-/**
- * Layout Spring - Optimized for layout animations
- * Use for: reordering, list animations, grid changes
- */
-export const layoutSpring = {
-  type: 'spring',
-  stiffness: 500,
+  stiffness: 380,
   damping: 38,
   mass: 1
 };
 
 /**
- * Rubber Band Spring - iOS-style overscroll feel
- * Use for: pull-to-refresh, elastic behaviors
+ * Page Spring - Full page transitions
+ * Use for: navigation, view changes
  */
-export const springRubberBand = {
+export const springPage = {
   type: 'spring',
-  stiffness: 150,
-  damping: 15,
+  stiffness: 260,
+  damping: 32,
+  mass: 1
+};
+
+/**
+ * Micro Spring - Tiny elements
+ * Use for: icons, badges, indicators
+ */
+export const springMicro = {
+  type: 'spring',
+  stiffness: 500,
+  damping: 45,
   mass: 0.8
 };
 
-// =============================================================================
-// EASE CURVES - For non-spring animations
-// =============================================================================
-
 /**
- * Ease Out - Quick start, smooth finish
- * Use for: exits, dismissals
+ * Layout Spring - List reordering
+ * Use for: list items, grid changes
  */
-export const easeOut = {
-  duration: 0.25,
-  ease: [0.25, 0.1, 0.25, 1]
+export const layoutSpring = {
+  type: 'spring',
+  stiffness: 400,
+  damping: 40,
+  mass: 1
 };
 
 /**
- * Ease In Out - Smooth both ends
- * Use for: symmetric transitions
+ * Rubber Band Spring - Overscroll physics
+ * Use for: pull-to-refresh, elastic edges
+ */
+export const springRubberBand = {
+  type: 'spring',
+  stiffness: 200,
+  damping: 25,
+  mass: 1
+};
+
+// Legacy aliases for backwards compatibility
+export const springDefault = springSmooth;
+export const springSnappy = springQuick;
+export const springGentle = springPage;
+export const springTactile = springQuick;
+export const springHeavy = springPage;
+export const springSlow = springPage;
+
+// =============================================================================
+// PREMIUM EASE CURVES - iOS/macOS calibrated
+// =============================================================================
+
+/**
+ * Apple Ease - The signature iOS curve
+ * Quick deceleration, smooth finish
+ */
+export const easeApple = {
+  duration: 0.25,
+  ease: [0.25, 0.1, 0.25, 1.0]
+};
+
+/**
+ * Apple Ease Out - Standard exit
+ */
+export const easeOut = {
+  duration: 0.2,
+  ease: [0.25, 0.1, 0.25, 1.0]
+};
+
+/**
+ * Apple Ease In Out - Symmetric
  */
 export const easeInOut = {
   duration: 0.3,
@@ -146,34 +134,35 @@ export const easeInOut = {
 };
 
 /**
- * iOS Ease - Apple's signature curve
- * Use for: matching native iOS feel
- */
-export const easeIOS = {
-  duration: 0.35,
-  ease: [0.4, 0.0, 0.2, 1]
-};
-
-/**
- * Quick Ease - Fast, crisp
- * Use for: small UI changes
+ * Quick Ease - Fast micro-interactions
  */
 export const easeQuick = {
   duration: 0.15,
-  ease: [0.25, 0.1, 0.25, 1]
+  ease: [0.25, 0.1, 0.25, 1.0]
 };
 
+/**
+ * iOS Ease - Legacy alias
+ */
+export const easeIOS = easeApple;
+
 // =============================================================================
-// PRESET VARIANTS - Ready-to-use animation configs
+// PRESET VARIANTS - Ready-to-use, premium quality
 // =============================================================================
 
+/**
+ * Fade In Up - Subtle entrance (4px)
+ */
 export const fadeInUp = {
-  initial: { opacity: 0, y: 12 },
+  initial: { opacity: 0, y: 4 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 12 },
-  transition: springDefault
+  exit: { opacity: 0 },
+  transition: easeApple
 };
 
+/**
+ * Fade In - Pure opacity
+ */
 export const fadeIn = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
@@ -181,36 +170,48 @@ export const fadeIn = {
   transition: easeOut
 };
 
+/**
+ * Scale In - Subtle scale (0.98)
+ */
 export const scaleIn = {
-  initial: { opacity: 0, scale: 0.92 },
+  initial: { opacity: 0, scale: 0.98 },
   animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.92 },
-  transition: springTactile
+  exit: { opacity: 0, scale: 0.98 },
+  transition: easeApple
 };
 
+/**
+ * Slide In From Right - Navigation push (8px)
+ */
 export const slideInFromRight = {
-  initial: { opacity: 0, x: 24 },
+  initial: { opacity: 0, x: 8 },
   animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: 24 },
-  transition: springDefault
+  exit: { opacity: 0, x: -8 },
+  transition: easeApple
 };
 
+/**
+ * Slide In From Bottom - Sheet entrance
+ */
 export const slideInFromBottom = {
-  initial: { opacity: 0, y: '100%' },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: '100%' },
-  transition: springGentle
+  initial: { y: '100%' },
+  animate: { y: 0 },
+  exit: { y: '100%' },
+  transition: springSheet
 };
 
+/**
+ * Slide In From Left - Back navigation
+ */
 export const slideInFromLeft = {
-  initial: { opacity: 0, x: -24 },
+  initial: { opacity: 0, x: -8 },
   animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -24 },
-  transition: springDefault
+  exit: { opacity: 0, x: 8 },
+  transition: easeApple
 };
 
 // =============================================================================
-// MODAL & SHEET ANIMATIONS
+// MODAL & SHEET ANIMATIONS - Premium quality
 // =============================================================================
 
 export const modalOverlay = {
@@ -221,140 +222,137 @@ export const modalOverlay = {
 };
 
 export const modalContent = {
-  initial: { opacity: 0, y: 24, scale: 0.96 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: 24, scale: 0.96 },
-  transition: springGentle
+  initial: { opacity: 0, scale: 0.98 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.98 },
+  transition: easeApple
 };
 
 export const sheetContent = {
   initial: { y: '100%' },
   animate: { y: 0 },
   exit: { y: '100%' },
-  transition: {
-    type: 'spring',
-    stiffness: 300,
-    damping: 35,
-    mass: 1
-  }
+  transition: springSheet
 };
 
 // =============================================================================
-// INTERACTIVE STATES
+// INTERACTIVE STATES - Subtle, refined
 // =============================================================================
 
+/**
+ * Tap Scale - Minimal feedback (0.98)
+ */
 export const tapScale = {
-  whileTap: { scale: 0.97 },
-  transition: springSnappy
+  whileTap: { scale: 0.98 },
+  transition: springQuick
 };
 
+/**
+ * Card Tap - Even more subtle (0.99)
+ */
 export const cardTap = {
-  whileTap: { scale: 0.985 },
-  transition: springTactile
+  whileTap: { scale: 0.99 },
+  transition: springQuick
 };
 
-export const hoverLift = {
-  whileHover: { y: -2 },
-  transition: springDefault
-};
-
+/**
+ * Hover Scale - Barely perceptible (1.01)
+ */
 export const hoverScale = {
-  whileHover: { scale: 1.02 },
-  transition: springTactile
+  whileHover: { scale: 1.01 },
+  transition: easeQuick
 };
 
+/**
+ * Press Scale - Button press (0.97)
+ */
 export const pressScale = {
-  whileTap: { scale: 0.95 },
-  transition: springTactile
+  whileTap: { scale: 0.97 },
+  transition: springQuick
 };
 
+// Removed hoverLift - unnecessary visual noise
+
 // =============================================================================
-// STAGGER ANIMATIONS
+// STAGGER ANIMATIONS - Tight, quick cascade
 // =============================================================================
 
-export const staggerContainer = (staggerDelay = 0.05) => ({
+export const staggerContainer = (staggerDelay = 0.03) => ({
   animate: {
     transition: {
-      staggerChildren: staggerDelay
+      staggerChildren: staggerDelay,
+      delayChildren: 0
     }
   }
 });
 
 export const staggerItem = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  transition: springDefault
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  transition: easeApple
 };
 
 export const staggerFadeIn = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
-  transition: easeOut
+  transition: easeQuick
 };
 
 // =============================================================================
-// COMPLEX ANIMATIONS
+// PAGE TRANSITIONS - iOS-style navigation
 // =============================================================================
 
 /**
- * Page transition - For full view changes
+ * Page Push - Enter from right
  */
 export const pageTransition = {
-  initial: { opacity: 0, x: 20 },
-  animate: { 
-    opacity: 1, 
+  initial: { opacity: 0, x: 12 },
+  animate: {
+    opacity: 1,
     x: 0,
-    transition: {
-      type: 'spring',
-      stiffness: 280,
-      damping: 30,
-      mass: 1
-    }
+    transition: springPage
   },
-  exit: { 
-    opacity: 0, 
-    x: -20,
-    transition: {
-      duration: 0.2,
-      ease: [0.25, 0.1, 0.25, 1]
-    }
+  exit: {
+    opacity: 0,
+    transition: easeOut
   }
 };
 
 /**
- * Article transition - Optimized for reading view
+ * Article View - Slide in from right edge
  */
 export const articleTransition = {
-  initial: { opacity: 0, y: 40 },
-  animate: { 
-    opacity: 1, 
-    y: 0,
-    transition: springGentle
+  initial: { opacity: 0.9, x: '100%' },
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: springSheet
   },
-  exit: { 
+  exit: {
     opacity: 0,
-    transition: { duration: 0.15 }
+    x: '20%',
+    transition: { duration: 0.2, ease: [0.4, 0, 1, 1] }
   }
 };
 
 // =============================================================================
-// HAPTIC FEEDBACK
+// HAPTIC FEEDBACK - Refined patterns
 // =============================================================================
 
 /**
  * Trigger haptic feedback (mobile)
- * Patterns calibrated for different interactions
+ * Calibrated for subtlety
  */
 export const triggerHaptic = (style = 'light') => {
   if ('vibrate' in navigator) {
     const patterns = {
-      light: [8],
-      medium: [12],
-      heavy: [20],
-      selection: [5],
-      success: [8, 40, 8],
-      error: [15, 30, 15, 30, 15],
-      warning: [10, 20, 10]
+      light: [6],
+      medium: [10],
+      heavy: [15],
+      selection: [4],
+      success: [6, 30, 6],
+      error: [10, 20, 10, 20, 10],
+      warning: [8, 15, 8]
     };
     navigator.vibrate(patterns[style] || patterns.light);
   }
@@ -365,20 +363,20 @@ export const triggerHaptic = (style = 'light') => {
 // =============================================================================
 
 /**
- * Create custom spring with overrides
+ * Create custom spring
  */
 export const createSpring = (overrides = {}) => ({
   type: 'spring',
   stiffness: 300,
-  damping: 30,
+  damping: 34,
   mass: 1,
   ...overrides
 });
 
 /**
- * Create stagger variants
+ * Create stagger config
  */
-export const createStagger = (delay = 0.05, baseVariant = staggerItem) => ({
+export const createStagger = (delay = 0.03, baseVariant = staggerItem) => ({
   container: staggerContainer(delay),
   item: baseVariant
 });
@@ -389,23 +387,29 @@ export const createStagger = (delay = 0.05, baseVariant = staggerItem) => ({
 
 export default {
   // Core springs
+  springQuick,
+  springSmooth,
+  springSheet,
+  springPage,
+  springMicro,
+  layoutSpring,
+  springRubberBand,
+
+  // Legacy aliases
   springDefault,
   springSnappy,
   springGentle,
-  springBouncy,
-  springSlow,
   springTactile,
-  springMicro,
   springHeavy,
-  layoutSpring,
-  springRubberBand,
-  
+  springSlow,
+
   // Ease curves
+  easeApple,
   easeOut,
   easeInOut,
-  easeIOS,
   easeQuick,
-  
+  easeIOS,
+
   // Presets
   fadeInUp,
   fadeIn,
@@ -413,28 +417,27 @@ export default {
   slideInFromRight,
   slideInFromBottom,
   slideInFromLeft,
-  
+
   // Modal/Sheet
   modalOverlay,
   modalContent,
   sheetContent,
-  
+
   // Interactive
   tapScale,
   cardTap,
-  hoverLift,
   hoverScale,
   pressScale,
-  
+
   // Stagger
   staggerContainer,
   staggerItem,
   staggerFadeIn,
-  
+
   // Complex
   pageTransition,
   articleTransition,
-  
+
   // Utilities
   triggerHaptic,
   createSpring,

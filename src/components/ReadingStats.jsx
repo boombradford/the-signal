@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReadingStats } from '../hooks/useReadingStats';
-import { springTactile, springGentle, triggerHaptic } from '../utils/animations';
+import { springQuick, easeApple, triggerHaptic } from '../utils/animations';
 
 /**
  * ReadingStats - Premium reading statistics
@@ -80,29 +80,36 @@ function ActivityBar({ count, maxCount, dayName, isToday }) {
     <div className="flex flex-col items-center gap-1.5">
       <div className="w-8 h-24 rounded-lg bg-[var(--color-fill)] relative overflow-hidden">
         <motion.div
-          className={`absolute bottom-0 left-0 right-0 rounded-lg ${
-            isToday
-              ? 'bg-[var(--color-tint)]'
-              : 'bg-[var(--color-label-tertiary)]'
-          }`}
+          className="absolute bottom-0 left-0 right-0 rounded-lg"
+          style={{
+            background: isToday
+              ? 'var(--color-tint)'
+              : 'var(--color-fill-secondary)',
+          }}
           initial={{ height: 0 }}
           animate={{ height: `${height}%` }}
           transition={{ delay: 0.2, duration: 0.5, ease: 'easeOut' }}
         />
         {count > 0 && (
-          <span className="absolute inset-0 flex items-end justify-center pb-1 text-[10px] font-semibold text-white">
+          <span className="absolute inset-0 flex items-end justify-center pb-1 text-[10px] font-semibold text-white z-10">
             {count}
           </span>
         )}
       </div>
-      <span className={`text-[11px] font-medium ${isToday ? 'text-[var(--color-tint)]' : 'text-label-tertiary'}`}>
+      <span
+        className="text-[11px] font-medium"
+        style={{
+          color: isToday ? '#0A84FF' : 'var(--color-label-tertiary)',
+          textShadow: isToday ? '0 0 8px rgba(10, 132, 255, 0.4)' : 'none',
+        }}
+      >
         {dayName}
       </span>
     </div>
   );
 }
 
-// Stat card component - Premium glass styling
+// Stat card component
 function StatCard({ icon, value, label, accent }) {
   return (
     <motion.div
@@ -116,7 +123,7 @@ function StatCard({ icon, value, label, accent }) {
       }}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      transition={springTactile}
+      transition={springQuick}
       onTap={() => triggerHaptic('light')}
     >
       <div
@@ -125,9 +132,11 @@ function StatCard({ icon, value, label, accent }) {
             ? 'bg-[var(--color-tint)] text-white'
             : 'bg-[var(--color-fill)] text-label-secondary'
         }`}
-        style={accent ? { boxShadow: '0 4px 16px rgba(10, 132, 255, 0.3)' } : {}}
+        style={accent ? {
+          boxShadow: '0 2px 8px rgba(10, 132, 255, 0.25)'
+        } : {}}
       >
-        {icon}
+        <span>{icon}</span>
       </div>
       <div>
         <p
@@ -184,7 +193,7 @@ export default function ReadingStats({ isOpen, onClose }) {
             initial={{ opacity: 0, y: -50, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: -50, x: '-50%' }}
-            transition={springGentle}
+            transition={easeApple}
             className="fixed top-20 left-1/2 z-[300] px-6 py-4 rounded-2xl flex items-center gap-3 cursor-pointer"
             style={{
               background: 'rgba(15, 15, 18, 0.95)',
@@ -242,7 +251,7 @@ export default function ReadingStats({ isOpen, onClose }) {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={springGentle}
+              transition={easeApple}
               className="fixed inset-4 top-[5%] bottom-auto max-h-[90vh] z-[201] rounded-3xl overflow-hidden flex flex-col max-w-lg mx-auto"
               style={{
                 background: 'rgba(15, 15, 18, 0.92)',
@@ -287,8 +296,8 @@ export default function ReadingStats({ isOpen, onClose }) {
                     onClose();
                   }}
                   whileTap={{ scale: 0.9 }}
-                  transition={springTactile}
-                  className="p-2 rounded-full hover:bg-[var(--color-fill)] transition-colors text-label-secondary"
+                  transition={springQuick}
+                  className="p-2 rounded-full text-label-secondary hover:text-[var(--color-tint)] hover:bg-[var(--color-fill)] transition-colors"
                 >
                   {Icons.close}
                 </motion.button>
@@ -296,29 +305,19 @@ export default function ReadingStats({ isOpen, onClose }) {
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {/* Streak banner - Premium with shimmer */}
+                {/* Streak banner */}
                 <motion.div
                   className="relative overflow-hidden rounded-2xl p-5"
                   style={{
-                    background: 'linear-gradient(135deg, var(--color-tint) 0%, rgba(10, 132, 255, 0.8) 100%)',
-                    boxShadow: '0 8px 32px rgba(10, 132, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                    background: 'var(--color-tint)',
+                    boxShadow: '0 4px 16px rgba(10, 132, 255, 0.25)'
                   }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={springGentle}
+                  transition={easeApple}
                   whileTap={{ scale: 0.98 }}
                   onTap={() => triggerHaptic('light')}
                 >
-                  {/* Shimmer effect */}
-                  <motion.div
-                    className="absolute inset-0 opacity-30"
-                    style={{
-                      background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
-                      backgroundSize: '200% 100%'
-                    }}
-                    animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                  />
                   <div className="relative z-10 flex items-center justify-between">
                     <div>
                       <p
@@ -397,12 +396,11 @@ export default function ReadingStats({ isOpen, onClose }) {
                       {weeklyProgress.current}/{weeklyProgress.goal}
                     </span>
                   </div>
-                  <div className="h-3 bg-[var(--color-fill)] rounded-full overflow-hidden">
+                  <div className="h-3 bg-[var(--color-fill)] rounded-full overflow-hidden relative">
                     <motion.div
-                      className="h-full rounded-full"
+                      className="h-full rounded-full relative overflow-hidden"
                       style={{
                         background: 'var(--color-tint)',
-                        boxShadow: '0 0 12px rgba(10, 132, 255, 0.4)'
                       }}
                       initial={{ width: 0 }}
                       animate={{ width: `${weeklyProgress.percentage}%` }}
@@ -530,7 +528,7 @@ export default function ReadingStats({ isOpen, onClose }) {
                           className="p-3 rounded-xl bg-[var(--color-fill)] flex items-center gap-2"
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          transition={springTactile}
+                          transition={springQuick}
                           onTap={() => triggerHaptic('light')}
                           title={achievement.description}
                         >

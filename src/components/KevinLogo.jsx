@@ -11,88 +11,127 @@ import { springTactile, springMicro, triggerHaptic } from '../utils/animations';
  * - Unmistakable at any size
  */
 
-// The K - SOLID BLOCK FORM
-const KGlyph = ({ size = 24, animated = false }) => {
+// The K - SOLID BLOCK FORM with premium animated signal arcs
+const KGlyph = ({ size = 24, animated = false, glowArcs = false }) => {
   // HEAVY strokes - block letter weight
   const scale = size / 32;
   const stemWidth = 6 * scale;
   const armWidth = 5 * scale;
   const arcWidth = 4 * scale;
-  
+
   const drawVariants = {
     hidden: { pathLength: 0, opacity: 0 },
     visible: (delay = 0) => ({
       pathLength: 1,
       opacity: 1,
-      transition: { 
-        duration: 0.35, 
+      transition: {
+        duration: 0.35,
         delay,
-        ease: [0.4, 0, 0.2, 1] 
+        ease: [0.4, 0, 0.2, 1]
       }
     })
   };
 
+  // Breathing glow animation for signal arcs
+  const glowVariants = {
+    breathe: {
+      filter: [
+        'drop-shadow(0 0 0px rgba(10, 132, 255, 0))',
+        'drop-shadow(0 0 4px rgba(10, 132, 255, 0.6))',
+        'drop-shadow(0 0 0px rgba(10, 132, 255, 0))',
+      ],
+      transition: {
+        duration: 2.5,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }
+    }
+  };
+
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 32 32" 
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
       fill="none"
       aria-hidden="true"
     >
-      <g 
-        stroke="currentColor" 
-        strokeLinecap="round" 
+      {/* Gradient definition for premium signal arcs */}
+      <defs>
+        <linearGradient id="signalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#0A84FF" />
+          <stop offset="100%" stopColor="#5E5CE6" />
+        </linearGradient>
+      </defs>
+      <g
+        stroke="currentColor"
+        strokeLinecap="round"
         strokeLinejoin="round"
       >
         {/* K STEM - HEAVY BLOCK */}
-        <motion.path 
-          d="M5 3v26" 
+        <motion.path
+          d="M5 3v26"
           strokeWidth={stemWidth}
           variants={animated ? drawVariants : undefined}
           initial={animated ? "hidden" : undefined}
           animate={animated ? "visible" : undefined}
           custom={0}
         />
-        
+
         {/* K UPPER - BOLD DIAGONAL */}
-        <motion.path 
-          d="M5 16L14 5" 
+        <motion.path
+          d="M5 16L14 5"
           strokeWidth={armWidth}
           variants={animated ? drawVariants : undefined}
           initial={animated ? "hidden" : undefined}
           animate={animated ? "visible" : undefined}
           custom={0.08}
         />
-        
+
         {/* K LOWER - BOLD DIAGONAL */}
-        <motion.path 
-          d="M5 16L15 29" 
+        <motion.path
+          d="M5 16L15 29"
           strokeWidth={armWidth}
           variants={animated ? drawVariants : undefined}
           initial={animated ? "hidden" : undefined}
           animate={animated ? "visible" : undefined}
           custom={0.12}
         />
-        
-        {/* SIGNAL ARC - THICK, BOLD */}
-        <motion.path 
+
+        {/* SIGNAL ARC 1 - Premium gradient with breathing glow */}
+        <motion.path
           d="M18 7c2.5 2.2 4 5.5 4 9s-1.5 6.8-4 9"
           strokeWidth={arcWidth}
-          variants={animated ? drawVariants : undefined}
+          stroke={glowArcs ? "url(#signalGradient)" : "currentColor"}
+          variants={animated ? drawVariants : (glowArcs ? glowVariants : undefined)}
           initial={animated ? "hidden" : undefined}
-          animate={animated ? "visible" : undefined}
+          animate={animated ? "visible" : (glowArcs ? "breathe" : undefined)}
           custom={0.2}
         />
-        
-        {/* SIGNAL ARC 2 - STILL BOLD */}
-        <motion.path 
+
+        {/* SIGNAL ARC 2 - Premium gradient with offset breathing */}
+        <motion.path
           d="M24 3c3 3.2 5 8 5 13s-2 9.8-5 13"
           strokeWidth={arcWidth * 0.75}
-          strokeOpacity={0.5}
-          variants={animated ? drawVariants : undefined}
+          strokeOpacity={glowArcs ? 0.8 : 0.5}
+          stroke={glowArcs ? "url(#signalGradient)" : "currentColor"}
+          variants={animated ? drawVariants : (glowArcs ? {
+            breathe: {
+              filter: [
+                'drop-shadow(0 0 0px rgba(94, 92, 230, 0))',
+                'drop-shadow(0 0 3px rgba(94, 92, 230, 0.5))',
+                'drop-shadow(0 0 0px rgba(94, 92, 230, 0))',
+              ],
+              transition: {
+                duration: 2.5,
+                delay: 0.5,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }
+            }
+          } : undefined)}
           initial={animated ? "hidden" : undefined}
-          animate={animated ? "visible" : undefined}
+          animate={animated ? "visible" : (glowArcs ? "breathe" : undefined)}
           custom={0.28}
         />
       </g>
@@ -111,19 +150,19 @@ export function KevinLogoHero({ onAnimationComplete }) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
     >
-      {/* LARGE BOLD GLYPH */}
+      {/* LARGE BOLD GLYPH with premium glowing signal arcs */}
       <motion.div
         className="text-[var(--color-label)]"
         initial={{ scale: 0.85, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ 
-          type: 'spring', 
-          stiffness: 300, 
+        transition={{
+          type: 'spring',
+          stiffness: 300,
           damping: 25,
-          delay: 0.05 
+          delay: 0.05
         }}
       >
-        <KGlyph size={160} animated />
+        <KGlyph size={160} animated glowArcs />
       </motion.div>
       
       {/* HEAVY WORDMARK */}

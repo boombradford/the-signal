@@ -211,7 +211,27 @@ export default function ClipUrl({ isOpen, onClose, onClipSaved }) {
                     {Icons.back}
                   </motion.button>
                 )}
-                <span className="text-[var(--color-tint)]">{Icons.clip}</span>
+                <motion.div
+                  className="relative"
+                  animate={{
+                    rotate: [0, -5, 5, 0],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path
+                      d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
+                      stroke="var(--color-tint)"
+                      style={{
+                        filter: 'drop-shadow(0 0 4px rgba(10, 132, 255, 0.4))',
+                      }}
+                    />
+                  </svg>
+                </motion.div>
                 <h2
                   className="text-[19px] text-label"
                   style={{
@@ -244,18 +264,31 @@ export default function ClipUrl({ isOpen, onClose, onClipSaved }) {
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center py-8"
                 >
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={springSnappy}
-                    className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-                    style={{
-                      background: 'rgba(50, 215, 75, 0.15)',
-                      color: 'var(--color-success)'
-                    }}
-                  >
-                    {Icons.check}
-                  </motion.div>
+                  <div className="relative w-16 h-16 mx-auto mb-4">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={springSnappy}
+                      className="relative w-full h-full rounded-full flex items-center justify-center overflow-hidden"
+                      style={{
+                        background: 'rgba(48, 209, 88, 0.1)',
+                        border: '1px solid rgba(48, 209, 88, 0.3)',
+                      }}
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="relative z-10">
+                        <motion.polyline
+                          points="20 6 9 17 4 12"
+                          stroke="#30D158"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 0.4, delay: 0.2 }}
+                        />
+                      </svg>
+                    </motion.div>
+                  </div>
                   <h3
                     className="text-[18px] text-label mb-2"
                     style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif', fontWeight: 500 }}
@@ -435,15 +468,16 @@ export default function ClipUrl({ isOpen, onClose, onClipSaved }) {
                     />
                   </div>
 
-                  {/* Paste from clipboard button - Premium with haptic */}
                   <motion.button
                     onClick={() => {
                       triggerHaptic('light');
                       handlePaste();
                     }}
                     whileTap={{ scale: 0.98 }}
+                    whileHover="hover"
+                    initial="rest"
                     transition={springTactile}
-                    className="w-full py-2.5 mb-4 text-[13px] text-label-secondary border border-[var(--color-separator)] rounded-lg hover:bg-[var(--color-fill)] transition-colors"
+                    className="w-full py-2.5 mb-4 text-[13px] font-medium rounded-lg border border-[var(--color-separator)] hover:bg-[var(--color-fill)] hover:border-[var(--color-tint)] transition-colors text-label-secondary hover:text-[var(--color-tint)]"
                   >
                     Paste from Clipboard
                   </motion.button>
@@ -459,7 +493,6 @@ export default function ClipUrl({ isOpen, onClose, onClipSaved }) {
                     </motion.p>
                   )}
 
-                  {/* Fetch button - Premium with haptic */}
                   <motion.button
                     onClick={() => {
                       triggerHaptic('medium');
@@ -469,25 +502,29 @@ export default function ClipUrl({ isOpen, onClose, onClipSaved }) {
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
                     transition={springTactile}
-                    className="w-full h-11 text-[15px] font-medium text-white bg-[var(--color-tint)] rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                    style={{ boxShadow: '0 4px 16px rgba(10, 132, 255, 0.3)' }}
+                    className="w-full h-11 text-[15px] font-medium text-white bg-[var(--color-tint)] rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 overflow-hidden"
+                    style={{
+                      boxShadow: '0 2px 8px rgba(10, 132, 255, 0.25)'
+                    }}
                   >
-                    {status === 'loading' ? (
-                      <>
-                        <motion.span
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        >
-                          {Icons.loading}
-                        </motion.span>
-                        <span>Analyzing...</span>
-                      </>
-                    ) : (
-                      <>
-                        {Icons.list}
-                        <span>Fetch Article</span>
-                      </>
-                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {status === 'loading' ? (
+                        <>
+                          <motion.span
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            {Icons.loading}
+                          </motion.span>
+                          <span>Analyzing...</span>
+                        </>
+                      ) : (
+                        <>
+                          {Icons.list}
+                          <span>Fetch Article</span>
+                        </>
+                      )}
+                    </span>
                   </motion.button>
                 </>
               )}
@@ -499,7 +536,7 @@ export default function ClipUrl({ isOpen, onClose, onClipSaved }) {
   );
 }
 
-// Small clip button for header - Premium with haptic
+// Small clip button for header - Premium with gradient hover and glow
 export function ClipButton({ onClick }) {
   return (
     <motion.button
@@ -508,11 +545,33 @@ export function ClipButton({ onClick }) {
         onClick();
       }}
       whileTap={{ scale: 0.9 }}
+      whileHover="hover"
+      initial="rest"
       transition={springTactile}
-      className="p-2 text-label-secondary hover:text-label transition-colors"
+      className="relative p-2"
       aria-label="Clip article from URL"
     >
-      {Icons.clip}
+      <motion.div
+        className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden"
+        style={{
+          background: 'var(--color-tint)',
+        }}
+        variants={{
+          rest: { opacity: 0 },
+          hover: { opacity: 1 },
+        }}
+        transition={{ duration: 0.2 }}
+      />
+      <motion.span
+        className="relative z-10"
+        variants={{
+          rest: { color: 'var(--color-label-secondary)' },
+          hover: { color: 'white' },
+        }}
+        transition={{ duration: 0.2 }}
+      >
+        {Icons.clip}
+      </motion.span>
     </motion.button>
   );
 }

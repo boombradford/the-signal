@@ -45,53 +45,44 @@ export default function SavedView({ onSelectArticle, onLogoClick }) {
             className="flex flex-col items-center justify-center px-8 py-20 text-center"
             role="status"
           >
-            {/* Animated bookmark with ambient effect */}
+            {/* Bookmark icon */}
             <motion.div
-              className="relative mb-8"
+              className="relative mb-10"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               transition={{ ...springGentle, delay: 0.1 }}
             >
-              {/* Ambient pulse */}
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                animate={{
-                  boxShadow: [
-                    '0 0 30px 15px rgba(255, 159, 10, 0.06)',
-                    '0 0 50px 25px rgba(255, 159, 10, 0.1)',
-                    '0 0 30px 15px rgba(255, 159, 10, 0.06)'
-                  ]
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: 'easeInOut'
-                }}
-              />
-              <div
-                className="relative w-20 h-20 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(145deg, rgba(255, 159, 10, 0.15), rgba(255, 159, 10, 0.05))',
-                  border: '1px solid rgba(255, 159, 10, 0.2)'
-                }}
-              >
-                <motion.svg
-                  width="36"
-                  height="36"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="text-[var(--color-warning)]"
-                  animate={{ y: [0, -2, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              <div className="relative">
+                <div
+                  className="relative w-24 h-24 rounded-3xl flex items-center justify-center bg-[rgba(255,159,10,0.1)] border border-[rgba(255,159,10,0.2)]"
                 >
-                  <path
-                    d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </motion.svg>
+                  <svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <path
+                      d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+                      stroke="#FF9F0A"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+
+                {/* Plus badge */}
+                <motion.div
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl flex items-center justify-center bg-[#FF9F0A] text-white border-2 border-[var(--color-background)]"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ ...springGentle, delay: 0.3 }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </motion.div>
               </div>
             </motion.div>
 
@@ -99,11 +90,11 @@ export default function SavedView({ onSelectArticle, onLogoClick }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...springGentle, delay: 0.15 }}
-              className="text-[24px] text-label mb-2"
+              className="text-[26px] text-label mb-3"
               style={{
                 fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
-                fontWeight: 600,
-                letterSpacing: '-0.024em'
+                fontWeight: 700,
+                letterSpacing: '-0.028em'
               }}
             >
               Your Reading List
@@ -113,10 +104,20 @@ export default function SavedView({ onSelectArticle, onLogoClick }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...springGentle, delay: 0.2 }}
-              className="text-label-secondary text-[15px] max-w-[280px] leading-relaxed"
+              className="text-label-secondary text-[15px] max-w-[300px] leading-relaxed mb-6"
               style={{ letterSpacing: '-0.016em' }}
             >
               Bookmark articles you want to read later. They'll be waiting for you here.
+            </motion.p>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ ...springGentle, delay: 0.3 }}
+              className="text-label-tertiary text-[13px]"
+              style={{ letterSpacing: '-0.008em' }}
+            >
+              Swipe right on any article to save it
             </motion.p>
           </motion.div>
         ) : (

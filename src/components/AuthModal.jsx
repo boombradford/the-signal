@@ -112,11 +112,11 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 boxShadow: '0 25px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
               }}
             >
-              {/* Header with subtle gradient */}
+              {/* Header */}
               <div
                 className="relative px-6 pt-10 pb-6 text-center"
                 style={{
-                  background: 'linear-gradient(180deg, rgba(10, 132, 255, 0.08) 0%, transparent 100%)'
+                  background: 'transparent'
                 }}
               >
                 <motion.div
@@ -125,20 +125,23 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                   transition={{ delay: 0.1, ...springTransition }}
                   className="relative"
                 >
-                  {/* Animated icon with glow */}
-                  <motion.div
-                    className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-[var(--color-tint)] flex items-center justify-center"
-                    style={{
-                      boxShadow: '0 8px 32px rgba(10, 132, 255, 0.4)'
-                    }}
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                  </motion.div>
+                  {/* Icon */}
+                  <div className="relative w-16 h-16 mx-auto mb-5">
+                    <motion.div
+                      className="relative w-full h-full rounded-2xl flex items-center justify-center overflow-hidden"
+                      style={{
+                        background: 'var(--color-tint)',
+                        boxShadow: '0 8px 32px rgba(10, 132, 255, 0.3)'
+                      }}
+                      animate={{ y: [0, -3, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </motion.div>
+                  </div>
                   <h2
                     id="auth-title"
                     className="text-[24px] text-label mb-2"
@@ -268,33 +271,40 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 </AnimatePresence>
 
                 {/* Submit button */}
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  className="glass-button-primary w-full"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {loading ? (
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      className="inline-block"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                      </svg>
-                    </motion.span>
-                  ) : (
-                    <>
-                      {mode === 'login' && 'Sign In'}
-                      {mode === 'register' && 'Create Account'}
-                      {mode === 'forgot' && 'Send Reset Link'}
-                    </>
-                  )}
-                </motion.button>
+                <div className="relative">
+                  <motion.button
+                    type="submit"
+                    disabled={loading}
+                    className="relative w-full h-12 rounded-xl text-[15px] font-semibold text-white disabled:opacity-70 overflow-hidden"
+                    style={{
+                      background: 'var(--color-tint)',
+                      boxShadow: '0 2px 8px rgba(10, 132, 255, 0.25)',
+                      letterSpacing: '-0.01em',
+                    }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {loading ? (
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="inline-block relative z-10"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg>
+                      </motion.span>
+                    ) : (
+                      <span className="relative z-10">
+                        {mode === 'login' && 'Sign In'}
+                        {mode === 'register' && 'Create Account'}
+                        {mode === 'forgot' && 'Send Reset Link'}
+                      </span>
+                    )}
+                  </motion.button>
+                </div>
 
-                {/* Mode switchers */}
+                {/* Mode switchers - Premium gradient text links */}
                 <div className="pt-4 text-center space-y-2">
                   {mode === 'login' && (
                     <>
@@ -316,7 +326,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                             triggerHaptic('selection');
                             setMode('register');
                           }}
-                          className="text-[var(--color-tint)] font-medium hover:underline"
+                          className="font-semibold transition-all hover:scale-105"
+                          style={{
+                            color: 'var(--color-tint)',
+                          }}
                         >
                           Sign up
                         </button>
@@ -332,7 +345,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                           triggerHaptic('selection');
                           setMode('login');
                         }}
-                        className="text-[var(--color-tint)] font-medium hover:underline"
+                        className="font-semibold transition-all hover:scale-105"
+                        style={{
+                          color: 'var(--color-tint)',
+                        }}
                       >
                         Sign in
                       </button>
@@ -345,8 +361,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                         triggerHaptic('selection');
                         setMode('login');
                       }}
-                      className="text-sm text-[var(--color-tint)] font-medium hover:underline"
-                    >
+                      className="text-sm font-semibold transition-all hover:scale-105"
+                                                style={{
+                                                  color: 'var(--color-tint)',
+                                                }}                    >
                       Back to sign in
                     </button>
                   )}
@@ -360,8 +378,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                   onClose();
                 }}
                 whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.1, backgroundColor: 'var(--color-fill-secondary)' }}
+                initial="rest"
                 transition={springTactile}
-                className="absolute top-4 right-4 p-2 rounded-full bg-[var(--color-fill)] hover:bg-[var(--color-fill-secondary)] text-label-secondary hover:text-label transition-colors"
+                className="absolute top-4 right-4 p-2 rounded-full bg-[var(--color-fill)] text-label-secondary transition-colors"
                 aria-label="Close"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

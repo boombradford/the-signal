@@ -7,13 +7,19 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { easeOut, springTactile, springGentle, triggerHaptic } from '../utils/animations';
+import { easeApple, easeOut, springQuick, triggerHaptic } from '../utils/animations';
 
 const SUGGESTIONS_API = '/api/suggestions';
 
 // Category icons - minimal SF Symbols-inspired line icons
 const CategoryIcons = {
   technology: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 21h8M12 17v4" />
+    </svg>
+  ),
+  tech: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="3" width="20" height="14" rx="2" />
       <path d="M8 21h8M12 17v4" />
@@ -45,10 +51,29 @@ const CategoryIcons = {
       <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
     </svg>
   ),
+  politics: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18M4 21V10l8-6 8 6v11" />
+      <rect x="9" y="13" width="6" height="8" />
+    </svg>
+  ),
   culture: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  ),
+  health: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  ),
+  sports: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a10 10 0 0 0 0 20" />
+      <path d="M2 12h20" />
+      <path d="M12 2c2.5 2.5 4 6 4 10s-1.5 7.5-4 10" />
     </svg>
   ),
   newsletters: (
@@ -187,9 +212,11 @@ export default function DiscoverFeeds({
                 triggerHaptic('light');
                 onClose();
               }}
-              whileTap={{ scale: 0.9 }}
-              transition={springTactile}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--color-fill)] text-label-secondary hover:text-label transition-colors"
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.05, backgroundColor: 'var(--color-fill-secondary)' }}
+              initial="rest"
+              transition={springQuick}
+              className="relative w-8 h-8 flex items-center justify-center rounded-full bg-[var(--color-fill)] text-label-secondary transition-colors"
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -201,21 +228,35 @@ export default function DiscoverFeeds({
       </header>
 
       <div className="max-w-2xl mx-auto px-4 pb-8 overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
-        {/* Reading Interests */}
+        {/* Reading Interests - Premium animated pills */}
         {patterns && patterns.topCategories?.length > 0 && (
           <section className="py-6 border-b border-[var(--color-separator)]">
             <p className="text-[11px] font-medium text-label-tertiary uppercase tracking-wider mb-3">
               Your Interests
             </p>
             <div className="flex flex-wrap gap-2">
-              {patterns.topCategories.map(category => (
-                <span
+              {patterns.topCategories.map((category, index) => (
+                <motion.span
                   key={category}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--color-fill)] text-[13px] text-label"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1, duration: 0.3 }}
+                  whileHover={{ scale: 1.05 }}
+                  className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] text-label cursor-default relative overflow-hidden transition-colors hover:bg-[var(--color-fill-secondary)]"
+                  style={{
+                    background: 'var(--color-fill)',
+                    border: '1px solid var(--color-separator)',
+                  }}
                 >
-                  <span className="text-label-secondary">{getCategoryIcon(category)}</span>
-                  {formatCategory(category)}
-                </span>
+                  <motion.span
+                    className="text-label-secondary relative z-10"
+                    whileHover={{ scale: 1.15 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {getCategoryIcon(category)}
+                  </motion.span>
+                  <span className="relative z-10">{formatCategory(category)}</span>
+                </motion.span>
               ))}
             </div>
           </section>
@@ -284,8 +325,8 @@ export default function DiscoverFeeds({
             }}
             disabled={loading}
             whileTap={{ scale: 0.95 }}
-            transition={springTactile}
-            className="px-3 py-2 text-[15px] text-[var(--color-tint)] font-medium hover:opacity-70 transition-opacity disabled:opacity-50"
+            transition={springQuick}
+            className="px-3 py-2 text-[15px] font-medium text-[var(--color-tint)] hover:opacity-80 transition-opacity disabled:opacity-50"
             style={{ letterSpacing: '-0.01em' }}
           >
             Refresh
@@ -320,7 +361,7 @@ export default function DiscoverFeeds({
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              transition={springTactile}
+              transition={springQuick}
               className="px-5 py-2.5 bg-[var(--color-tint)] text-white text-[14px] font-medium rounded-lg hover:opacity-90 transition-opacity"
               style={{ boxShadow: '0 2px 8px rgba(10, 132, 255, 0.25)' }}
             >
@@ -347,13 +388,25 @@ export default function DiscoverFeeds({
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20, scale: 0.95 }}
-                    transition={{ delay: index * 0.03, ...springGentle }}
+                    transition={{ delay: index * 0.03, ...easeApple }}
                     className="group"
                   >
-                    <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-[var(--color-fill-secondary)] transition-colors">
+                    <div className="group/feed flex items-start gap-4 p-4 rounded-xl hover:bg-[var(--color-fill-secondary)] transition-colors">
                       {/* Category Icon */}
-                      <div className="w-10 h-10 rounded-lg bg-[var(--color-fill)] flex items-center justify-center text-label-secondary flex-shrink-0">
-                        {getCategoryIcon(feed.category)}
+                      <div className="relative flex-shrink-0">
+                        <motion.div
+                          className="relative w-10 h-10 rounded-lg flex items-center justify-center text-label-secondary"
+                          style={{
+                            background: 'var(--color-fill)',
+                          }}
+                          whileHover={{
+                            background: 'var(--color-fill-secondary)',
+                            color: 'var(--color-tint)',
+                          }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {getCategoryIcon(feed.category)}
+                        </motion.div>
                       </div>
 
                       {/* Content */}
@@ -377,39 +430,45 @@ export default function DiscoverFeeds({
                         </p>
                       </div>
 
-                      {/* Subscribe Button - Premium with haptic */}
-                      <motion.button
-                        onClick={() => {
-                          triggerHaptic('medium');
-                          handleSubscribe(feed);
-                        }}
-                        disabled={subscribing === feed.url}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={springTactile}
-                        className="flex-shrink-0 px-4 py-2 bg-[var(--color-tint)] text-white text-[13px] font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
-                        style={{ boxShadow: '0 2px 8px rgba(10, 132, 255, 0.25)' }}
-                      >
-                        {subscribing === feed.url ? (
-                          <motion.svg
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path d="M21 12a9 9 0 11-6.219-8.56" />
-                          </motion.svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <path d="M12 5v14M5 12h14" />
-                          </svg>
-                        )}
-                        Add
-                      </motion.button>
+                      {/* Subscribe Button */}
+                      <div className="relative flex-shrink-0">
+                        <motion.button
+                          onClick={() => {
+                            triggerHaptic('medium');
+                            handleSubscribe(feed);
+                          }}
+                          disabled={subscribing === feed.url}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.95 }}
+                          transition={springQuick}
+                          className="relative px-4 py-2 text-white text-[13px] font-medium rounded-lg disabled:opacity-50 flex items-center gap-1.5 overflow-hidden"
+                          style={{
+                            background: 'var(--color-tint)',
+                            boxShadow: '0 2px 8px rgba(10, 132, 255, 0.25)'
+                          }}
+                        >
+                          {subscribing === feed.url ? (
+                            <motion.svg
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className="relative z-10"
+                            >
+                              <path d="M21 12a9 9 0 11-6.219-8.56" />
+                            </motion.svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="relative z-10">
+                              <path d="M12 5v14M5 12h14" />
+                            </svg>
+                          )}
+                          <span className="relative z-10">Add</span>
+                        </motion.button>
+                      </div>
                     </div>
                   </motion.div>
                 ))

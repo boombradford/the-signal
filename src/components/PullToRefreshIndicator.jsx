@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { springTactile } from '../utils/animations';
+import { springQuick } from '../utils/animations';
 
 /**
  * PullToRefreshIndicator - Premium iOS-style refresh indicator
@@ -35,7 +35,7 @@ export default function PullToRefreshIndicator({
         scale: isRefreshing ? 1 : scale,
       }}
       exit={{ opacity: 0, scale: 0.8 }}
-      transition={springTactile}
+      transition={springQuick}
     >
       <motion.div
         className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -60,28 +60,29 @@ export default function PullToRefreshIndicator({
           duration: 1.5,
           repeat: Infinity,
           ease: 'easeInOut'
-        } : springTactile}
+        } : springQuick}
       >
         {isRefreshing ? (
-          // Apple-style spinning indicator
-          <motion.svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--color-tint)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            animate={{ rotate: 360 }}
-            transition={{
-              duration: 0.8,
-              repeat: Infinity,
-              ease: 'linear',
-            }}
-          >
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeOpacity="0.3" />
-            <path d="M12 2v4" />
-          </motion.svg>
+          <div className="relative">
+            <motion.svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              className="relative z-10"
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 0.8,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+            >
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="var(--color-tint)" strokeOpacity="0.3" />
+              <path d="M12 2v4" stroke="var(--color-tint)" />
+            </motion.svg>
+          </div>
         ) : (
           // Arrow indicator during pull
           <motion.svg
@@ -94,7 +95,7 @@ export default function PullToRefreshIndicator({
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{ rotate: rotation }}
-            transition={springTactile}
+            transition={springQuick}
           >
             <path d="M12 19V5M5 12l7-7 7 7" />
           </motion.svg>

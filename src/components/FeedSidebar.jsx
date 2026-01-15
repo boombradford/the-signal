@@ -80,15 +80,24 @@ function FeedItem({ feed, isSelected, onClick, onDelete }) {
         )}
 
         {/* Delete button (visible on hover) */}
-        <button
+        <motion.button
           onClick={handleDelete}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded text-label-tertiary hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-all"
+          whileTap={{ scale: 0.9 }}
+          transition={springTactile}
+          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-label-tertiary hover:text-[#FF453A] hover:bg-red-500/10 transition-all"
           aria-label={`Delete ${feed.title}`}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" />
           </svg>
-        </button>
+        </motion.button>
 
         {/* Chevron */}
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" className="text-label-tertiary group-hover:hidden" aria-hidden="true">
@@ -174,7 +183,7 @@ export default function FeedSidebar({
             }}
             whileTap={{ scale: 0.95 }}
             transition={springTactile}
-            className="text-[17px] font-medium text-[var(--color-tint)] px-2 -mr-2 hover:opacity-70 transition-opacity"
+            className="text-[17px] font-medium px-2 -mr-2 text-[var(--color-tint)]"
             style={{ letterSpacing: '-0.022em' }}
             aria-label="Close feed navigation"
           >
@@ -199,7 +208,7 @@ export default function FeedSidebar({
               aria-current={selectedFeedId === null ? 'true' : undefined}
               aria-label={`All Articles${totalUnread > 0 ? `, ${totalUnread} unread` : ''}`}
             >
-              <div className="w-8 h-8 rounded-ios bg-[var(--color-tint)] flex items-center justify-center" aria-hidden="true">
+              <div className="w-8 h-8 rounded-ios flex items-center justify-center bg-[var(--color-tint)]" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                   <path d="M4 11a9 9 0 0 1 9 9" />
                   <path d="M4 4a16 16 0 0 1 16 16" />
@@ -263,7 +272,7 @@ export default function FeedSidebar({
             </div>
           ))}
 
-          {/* Add feed button */}
+          {/* Add feed button - Premium with animated gradient border */}
           <div className="p-4 mt-4">
             <motion.button
               onClick={() => {
@@ -273,10 +282,8 @@ export default function FeedSidebar({
               }}
               whileTap={{ scale: 0.98 }}
               transition={springTactile}
-              className="w-full p-3 rounded-ios-lg border-2 border-dashed border-separator
-                         flex items-center justify-center gap-2 text-label-secondary
-                         hover:border-[var(--color-tint)] hover:text-[var(--color-tint)]
-                         transition-colors"
+              className="w-full p-3 rounded-ios-lg flex items-center justify-center gap-2 text-label-secondary hover:text-[var(--color-tint)] hover:bg-white/5 transition-colors"
+              style={{ border: '1px solid var(--color-separator)' }}
               aria-label="Add new feed"
             >
               <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden="true">

@@ -5,10 +5,11 @@ import { SimpleHeader } from './Header';
 import SummaryCard from './SummaryCard';
 import { useArticles, useSettings } from '../hooks/useDatabase';
 import { useSummary } from '../hooks/useSummary';
+import { useHighlights } from '../hooks/useHighlights';
 import { formatRelativeTime } from '../utils/rss';
 import { estimateReadingTime } from '../utils/ai';
 import { getArticleImageUrl } from '../utils/imageProxy';
-import { triggerHaptic, springGentle, springTactile } from '../utils/animations';
+import { triggerHaptic, springQuick, springSheet, easeApple, easeOut } from '../utils/animations';
 
 /**
  * ArticleView - Premium reading experience with Apple typography
@@ -60,29 +61,26 @@ const Icons = {
       <circle cx="12" cy="5" r="1" />
       <circle cx="12" cy="19" r="1" />
     </svg>
+  ),
+  check: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   )
 };
 
-// iOS-style transition for article view
+// Premium iOS-style transition
 const articleViewTransition = {
-  initial: { x: '100%', opacity: 0.8 },
-  animate: { 
-    x: 0, 
+  initial: { x: '100%', opacity: 0.95 },
+  animate: {
+    x: 0,
     opacity: 1,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 35,
-      mass: 1
-    }
+    transition: springSheet
   },
-  exit: { 
-    x: '30%', 
+  exit: {
+    x: '25%',
     opacity: 0,
-    transition: {
-      duration: 0.2,
-      ease: [0.4, 0, 1, 1]
-    }
+    transition: { duration: 0.2, ease: [0.4, 0, 1, 1] }
   }
 };
 
@@ -100,6 +98,45 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
   const progressWidth = useTransform(progressSpring, [0, 100], ['0%', '100%']);
 
   const { toggleSaved } = useArticles();
+  const { highlights, addHighlight, deleteHighlight } = useHighlights(article.id);
+  const [selection, setSelection] = useState(null);
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !contentRef.current?.contains(sel.anchorNode)) {
+        setSelection(null);
+        return;
+      }
+      
+      const text = sel.toString().trim();
+      if (text.length > 0) {
+        const range = sel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        setSelection({ 
+          text, 
+          top: rect.top,
+          left: rect.left,
+          width: rect.width
+        });
+      } else {
+        setSelection(null);
+      }
+    };
+
+    const container = contentRef.current;
+    if (container) {
+      container.addEventListener('mouseup', handleSelectionChange);
+      container.addEventListener('keyup', handleSelectionChange);
+    }
+    
+    return () => {
+      if (container) {
+        container.removeEventListener('mouseup', handleSelectionChange);
+        container.removeEventListener('keyup', handleSelectionChange);
+      }
+    };
+  }, []);
   const { settings } = useSettings();
   const {
     summary,
@@ -127,7 +164,7 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
     setReadingProgress(progress);
     progressSpring.set(progress);
 
-    // Haptic feedback when completing article
+    // Subtle haptic feedback when completing article
     if (progress >= 95 && !hasCompletedReading) {
       setHasCompletedReading(true);
       triggerHaptic('success');
@@ -213,9 +250,49 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
     ? estimateReadingTime(article.content)
     : null;
 
+  // Detect if content is HN-style metadata
+  const isHNContent = (content) => {
+    return content && (
+      content.includes('Article URL:') ||
+      content.includes('Comments URL:') ||
+      (content.includes('Points:') && content.includes('# Comments:'))
+    );
+  };
+
+  // Parse HN metadata from content
+  const parseHNMetadata = (content) => {
+    const metadata = {};
+    const articleUrlMatch = content.match(/Article URL:\s*(https?:\/\/[^\s]+)/);
+    const commentsUrlMatch = content.match(/Comments URL:\s*(https?:\/\/[^\s]+)/);
+    const pointsMatch = content.match(/Points:\s*(\d+)/);
+    const commentsMatch = content.match(/#\s*Comments:\s*(\d+)/);
+
+    if (articleUrlMatch) metadata.articleUrl = articleUrlMatch[1];
+    if (commentsUrlMatch) metadata.commentsUrl = commentsUrlMatch[1];
+    if (pointsMatch) metadata.points = parseInt(pointsMatch[1], 10);
+    if (commentsMatch) metadata.comments = parseInt(commentsMatch[1], 10);
+
+    // Get any text before the URLs (the actual content/description)
+    const textContent = content
+      .replace(/Article URL:.*$/m, '')
+      .replace(/Comments URL:.*$/m, '')
+      .replace(/Points:.*$/m, '')
+      .replace(/#\s*Comments:.*$/m, '')
+      .trim();
+
+    if (textContent && textContent.length > 10) {
+      metadata.description = textContent;
+    }
+
+    return metadata;
+  };
+
   const getCleanContent = () => {
     const content = article.content || article.description || '';
     if (!content) return '';
+
+    // Don't process HN content through this path
+    if (isHNContent(content)) return '';
 
     const sanitized = DOMPurify.sanitize(content, {
       ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li',
@@ -240,6 +317,11 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
     return temp.innerHTML;
   };
 
+  // Get HN metadata if applicable
+  const hnMetadata = isHNContent(article.content || article.description || '')
+    ? parseHNMetadata(article.content || article.description || '')
+    : null;
+
   return (
     <motion.div
       initial={articleViewTransition.initial}
@@ -257,8 +339,8 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
               triggerHaptic('light');
               setShowActions(true);
             }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+            whileTap={{ scale: 0.95 }}
+            transition={springQuick}
             className="p-2 -mr-2 text-[var(--color-label-secondary)] hover:text-[var(--color-label)] transition-colors"
           >
             {Icons.more}
@@ -266,92 +348,19 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
         }
       />
 
-      {/* Reading Progress Indicator - elegant thin line with celebration */}
+      {/* Reading Progress Indicator */}
       <div
-        className="fixed left-0 right-0 z-[51] h-[2px] bg-transparent"
+        className="fixed left-0 right-0 z-[51] h-[2px] bg-transparent overflow-hidden"
         style={{ top: 'calc(44px + env(safe-area-inset-top))' }}
       >
         <motion.div
           className="h-full origin-left"
           style={{
             width: progressWidth,
-            background: readingProgress >= 95
-              ? 'linear-gradient(90deg, var(--color-tint), var(--color-success))'
-              : 'var(--color-tint)'
+            background: readingProgress >= 95 ? '#30D158' : 'var(--color-tint)',
           }}
-          animate={readingProgress >= 95 ? {
-            boxShadow: [
-              '0 0 8px rgba(52, 199, 89, 0.4)',
-              '0 0 16px rgba(52, 199, 89, 0.6)',
-              '0 0 8px rgba(52, 199, 89, 0.4)'
-            ]
-          } : {
-            boxShadow: readingProgress > 0 ? '0 0 8px rgba(10, 132, 255, 0.4)' : 'none'
-          }}
-          transition={readingProgress >= 95 ? {
-            duration: 1.5,
-            repeat: Infinity,
-            ease: 'easeInOut'
-          } : {}}
         />
       </div>
-
-      {/* Reading Completion Celebration */}
-      <AnimatePresence>
-        {hasCompletedReading && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -20 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="fixed left-1/2 -translate-x-1/2 z-[60] pointer-events-none"
-            style={{ top: 'calc(60px + env(safe-area-inset-top))' }}
-          >
-            <motion.div
-              className="px-4 py-2 rounded-full flex items-center gap-2"
-              style={{
-                background: 'rgba(52, 199, 89, 0.15)',
-                border: '1px solid rgba(52, 199, 89, 0.3)',
-                backdropFilter: 'blur(20px)'
-              }}
-              animate={{
-                boxShadow: [
-                  '0 4px 16px rgba(52, 199, 89, 0.2)',
-                  '0 8px 24px rgba(52, 199, 89, 0.3)',
-                  '0 4px 16px rgba(52, 199, 89, 0.2)'
-                ]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: 'easeInOut'
-              }}
-            >
-              <motion.svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--color-success)"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </motion.svg>
-              <span
-                className="text-[13px] font-medium text-[var(--color-success)]"
-                style={{ letterSpacing: '-0.008em' }}
-              >
-                Article Complete
-              </span>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <div
         ref={contentRef}
@@ -432,35 +441,37 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
                 View
               </span>
               <div className="flex gap-1">
+                {/* Summary tab */}
                 <motion.button
                   onClick={() => {
                     triggerHaptic('selection');
                     setShowOriginal(false);
                   }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  className={`px-4 py-2 text-[15px] font-medium rounded-lg transition-colors ${
-                    !showOriginal
-                      ? 'bg-[var(--color-label)] text-[var(--color-background)]'
-                      : 'text-[var(--color-label-secondary)] hover:text-[var(--color-label)]'
-                  }`}
-                  style={{ letterSpacing: '-0.016em' }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springQuick}
+                  className="px-4 py-2 text-[15px] font-medium rounded-lg transition-colors"
+                  style={{
+                    letterSpacing: '-0.016em',
+                    background: !showOriginal ? 'var(--color-tint)' : 'transparent',
+                    color: !showOriginal ? 'white' : 'var(--color-label-secondary)',
+                  }}
                 >
                   Summary
                 </motion.button>
+                {/* Full Article tab */}
                 <motion.button
                   onClick={() => {
                     triggerHaptic('selection');
                     setShowOriginal(true);
                   }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  className={`px-4 py-2 text-[15px] font-medium rounded-lg transition-colors ${
-                    showOriginal
-                      ? 'bg-[var(--color-label)] text-[var(--color-background)]'
-                      : 'text-[var(--color-label-secondary)] hover:text-[var(--color-label)]'
-                  }`}
-                  style={{ letterSpacing: '-0.016em' }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springQuick}
+                  className="px-4 py-2 text-[15px] font-medium rounded-lg transition-colors"
+                  style={{
+                    letterSpacing: '-0.016em',
+                    background: showOriginal ? 'var(--color-tint)' : 'transparent',
+                    color: showOriginal ? 'white' : 'var(--color-label-secondary)',
+                  }}
                 >
                   Full Article
                 </motion.button>
@@ -468,39 +479,28 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
             </div>
           )}
 
-          {/* Hero Image - Prominent Apple-style presentation */}
+          {/* Hero Image - Clean presentation */}
           {showOriginal && article.thumbnail && (
             <motion.figure
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={easeApple}
               className="mb-10 -mx-5 sm:mx-0"
             >
               <div
                 className="relative overflow-hidden sm:rounded-2xl"
                 style={{
-                  boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.5)',
+                  boxShadow: '0 12px 32px -8px rgba(0, 0, 0, 0.4)',
                 }}
               >
-                {/* Subtle gradient overlay for depth */}
-                <div
-                  className="absolute inset-0 z-10 pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(180deg, transparent 60%, rgba(0, 0, 0, 0.15) 100%)',
-                  }}
-                />
-                <motion.img
+                <img
                   src={getArticleImageUrl(article.thumbnail)}
                   alt={article.title}
                   className="w-full h-auto"
                   loading="eager"
                   referrerPolicy="no-referrer"
-                  initial={{ scale: 1.05 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                 />
               </div>
-              {/* Optional caption styling */}
               {article.imageCaption && (
                 <figcaption
                   className="mt-3 text-center text-[13px] text-[var(--color-label-tertiary)] px-5"
@@ -517,15 +517,131 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
 
           {/* Article content */}
           {showOriginal && (
-            <div
-              className="reading-content"
-              dangerouslySetInnerHTML={{
-                __html: getCleanContent() || '<p class="text-[var(--color-label-secondary)]">No content available. Open the original article to read more.</p>'
-              }}
-            />
+            <>
+              {/* HN-style content - elegant metadata display */}
+              {hnMetadata && (
+                <div className="space-y-6">
+                  {/* Description if available */}
+                  {hnMetadata.description && (
+                    <p
+                      className="text-[17px] text-[var(--color-label-secondary)] leading-relaxed"
+                      style={{ letterSpacing: '-0.016em' }}
+                    >
+                      {hnMetadata.description}
+                    </p>
+                  )}
+
+                  {/* Engagement metrics */}
+                  {(hnMetadata.points !== undefined || hnMetadata.comments !== undefined) && (
+                    <div className="flex items-center gap-3">
+                      {hnMetadata.points !== undefined && (
+                        <div
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                          style={{ background: 'rgba(255, 149, 0, 0.1)' }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF9500" strokeWidth="2">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                          <span className="text-[14px] font-medium text-[#FF9500]">
+                            {hnMetadata.points} points
+                          </span>
+                        </div>
+                      )}
+                      {hnMetadata.comments !== undefined && (
+                        <div
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                          style={{ background: 'rgba(10, 132, 255, 0.1)' }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-tint)" strokeWidth="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                          </svg>
+                          <span className="text-[14px] font-medium text-[var(--color-tint)]">
+                            {hnMetadata.comments} comments
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Links */}
+                  <div className="space-y-2">
+                    {hnMetadata.commentsUrl && (
+                      <motion.a
+                        href={hnMetadata.commentsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center justify-between px-4 py-3 rounded-xl border border-[var(--color-separator)] hover:bg-[var(--color-fill)] transition-colors"
+                      >
+                        <span className="text-[15px] text-[var(--color-label)]" style={{ letterSpacing: '-0.016em' }}>
+                          View Discussion
+                        </span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-label-tertiary)" strokeWidth="1.5">
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </motion.a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Regular content */}
+              {!hnMetadata && (
+                <div
+                  className="reading-content"
+                  dangerouslySetInnerHTML={{
+                    __html: getCleanContent() || '<p class="text-[var(--color-label-secondary)]">No content available. Open the original article to read more.</p>'
+                  }}
+                />
+              )}
+            </>
           )}
 
-          {/* Read more */}
+          {/* Highlights */}
+          {showOriginal && highlights.length > 0 && (
+            <div className="mb-10 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[17px] font-semibold text-label">Highlights</h3>
+                <button
+                  onClick={() => {
+                    const md = highlights.map(h => `> ${h.text}`).join('\n\n');
+                    navigator.clipboard.writeText(`# ${article.title}\nSource: ${article.link}\n\n${md}`);
+                    triggerHaptic('success');
+                  }}
+                  className="text-[13px] text-[var(--color-tint)] font-medium hover:opacity-80 transition-opacity"
+                >
+                  Export Markdown
+                </button>
+              </div>
+              {highlights.map(h => (
+                <motion.div
+                  key={h.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-xl bg-[rgba(255,214,10,0.1)] border border-[rgba(255,214,10,0.2)] relative group"
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#FFD60A] rounded-l-xl opacity-50" />
+                  <p className="text-[15px] leading-relaxed text-label-secondary pl-2">
+                    {h.text}
+                  </p>
+                  <button
+                    onClick={() => {
+                      triggerHaptic('medium');
+                      deleteHighlight(h.id);
+                    }}
+                    className="absolute top-2 right-2 p-1.5 text-label-tertiary hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* Read more - Premium with animated gradient border */}
           <div className="mt-12 pt-8 border-t border-[var(--color-separator)]">
             <motion.button
               onClick={() => {
@@ -533,9 +649,12 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
                 handleOpenOriginal();
               }}
               whileTap={{ scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              className="w-full py-4 text-[17px] font-medium text-[var(--color-tint)] border border-[var(--color-separator)] rounded-xl hover:bg-[var(--color-fill)] transition-colors"
-              style={{ letterSpacing: '-0.022em' }}
+              transition={springQuick}
+              className="w-full py-4 text-[17px] font-semibold text-white rounded-xl transition-colors"
+              style={{
+                letterSpacing: '-0.022em',
+                background: 'var(--color-tint)',
+              }}
             >
               Read Original Article
             </motion.button>
@@ -545,39 +664,60 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
 
       {/* Bottom action bar */}
       <nav
-        className="fixed bottom-0 left-0 right-0 bg-[var(--color-background)] border-t border-[var(--color-separator)]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="fixed bottom-0 left-0 right-0 z-50"
+        style={{
+          background: 'rgba(0, 0, 0, 0.88)',
+          backdropFilter: 'blur(30px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+          borderTop: '0.5px solid rgba(255, 255, 255, 0.06)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        }}
       >
-        <div className="flex items-center justify-around py-3 px-6 max-w-md mx-auto">
+        <div className="flex items-center justify-around py-2.5 px-6 max-w-md mx-auto">
+          {/* Save button */}
           <motion.button
             onClick={() => {
               triggerHaptic(isSaved ? 'light' : 'success');
               handleSave();
             }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className={`flex flex-col items-center gap-1 py-2 px-4 transition-colors ${
-              isSaved ? 'text-[var(--color-label)]' : 'text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)]'
-            }`}
+            whileTap={{ scale: 0.92 }}
+            transition={springQuick}
+            className="flex flex-col items-center gap-1 py-2 px-5 rounded-xl transition-colors"
+            style={{
+              background: isSaved ? 'var(--color-tint)' : 'transparent',
+              color: isSaved ? 'white' : 'var(--color-label-tertiary)',
+            }}
           >
             {Icons.bookmark(isSaved)}
-            <span className="text-[11px] font-medium" style={{ letterSpacing: '0.01em' }}>
+            <span
+              className="text-[10px] font-semibold"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                letterSpacing: '0.02em'
+              }}
+            >
               {isSaved ? 'Saved' : 'Save'}
             </span>
           </motion.button>
 
+          {/* Summarize button */}
           <motion.button
             onClick={() => {
               triggerHaptic('medium');
               handleSummarize();
             }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className="flex flex-col items-center gap-1 py-2 px-4 text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)] transition-colors"
+            whileTap={{ scale: 0.92 }}
+            transition={springQuick}
+            className="flex flex-col items-center gap-1 py-2 px-5 rounded-xl transition-colors"
             disabled={summaryLoading}
+            style={{
+              background: hasSummary ? 'rgba(191, 90, 242, 0.15)' : 'transparent',
+              color: hasSummary ? '#BF5AF2' : 'var(--color-label-tertiary)',
+            }}
           >
             {summaryLoading ? (
               <motion.span
+                className="inline-block"
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
               >
@@ -586,37 +726,57 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
             ) : (
               Icons.summarize
             )}
-            <span className="text-[11px] font-medium" style={{ letterSpacing: '0.01em' }}>
-              {hasSummary ? 'Resummarize' : 'Summarize'}
+            <span
+              className="text-[10px] font-semibold"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                letterSpacing: '0.02em'
+              }}
+            >
+              {hasSummary ? 'Summarized' : 'Summarize'}
             </span>
           </motion.button>
 
+          {/* Share button */}
           <motion.button
             onClick={() => {
               triggerHaptic('light');
               handleShare();
             }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className="flex flex-col items-center gap-1 py-2 px-4 text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)] transition-colors"
+            whileTap={{ scale: 0.92 }}
+            transition={springQuick}
+            className="flex flex-col items-center gap-1 py-2 px-5 rounded-xl text-label-tertiary hover:text-[var(--color-tint)] hover:bg-white/5 transition-colors"
           >
             {Icons.share}
-            <span className="text-[11px] font-medium" style={{ letterSpacing: '0.01em' }}>
+            <span
+              className="text-[10px] font-semibold"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                letterSpacing: '0.02em'
+              }}
+            >
               Share
             </span>
           </motion.button>
 
+          {/* Open Original button */}
           <motion.button
             onClick={() => {
               triggerHaptic('light');
               handleOpenOriginal();
             }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className="flex flex-col items-center gap-1 py-2 px-4 text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)] transition-colors"
+            whileTap={{ scale: 0.92 }}
+            transition={springQuick}
+            className="flex flex-col items-center gap-1 py-2 px-5 rounded-xl text-label-tertiary hover:text-[#30D158] hover:bg-white/5 transition-colors"
           >
             {Icons.external}
-            <span className="text-[11px] font-medium" style={{ letterSpacing: '0.01em' }}>
+            <span
+              className="text-[10px] font-semibold"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                letterSpacing: '0.02em'
+              }}
+            >
               Open
             </span>
           </motion.button>
@@ -642,52 +802,108 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              transition={springSheet}
               className="fixed bottom-0 left-0 right-0 z-[101] bg-[var(--color-background-elevated)] rounded-t-2xl"
               style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
               <div className="w-9 h-1 bg-[var(--color-fill-secondary)] rounded-full mx-auto mt-2" />
-              <div className="p-4">
+              <div className="p-4 space-y-1">
                 <motion.button
-                  className="w-full py-4 text-left text-[17px] text-[var(--color-label)] hover:bg-[var(--color-fill)] rounded-lg px-4 transition-colors"
+                  className="w-full py-4 text-left text-[17px] rounded-xl px-4 flex items-center gap-3 text-label hover:bg-white/5 transition-colors"
                   style={{ letterSpacing: '-0.022em' }}
-                  whileTap={{ scale: 0.98, backgroundColor: 'var(--color-fill)' }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  whileTap={{ scale: 0.99 }}
+                  transition={springQuick}
                   onClick={() => {
                     triggerHaptic('selection');
                     setShowActions(false);
                   }}
                 >
-                  Mark as Unread
+                  <span className="text-label-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="12" cy="12" r="4" fill="currentColor" />
+                    </svg>
+                  </span>
+                  <span>Mark as Unread</span>
                 </motion.button>
                 <motion.button
-                  className="w-full py-4 text-left text-[17px] text-[var(--color-label)] hover:bg-[var(--color-fill)] rounded-lg px-4 transition-colors"
+                  className="w-full py-4 text-left text-[17px] rounded-xl px-4 flex items-center gap-3 text-label hover:bg-white/5 transition-colors"
                   style={{ letterSpacing: '-0.022em' }}
-                  whileTap={{ scale: 0.98, backgroundColor: 'var(--color-fill)' }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  whileTap={{ scale: 0.99 }}
+                  transition={springQuick}
                   onClick={async () => {
                     triggerHaptic('success');
                     await navigator.clipboard.writeText(article.link);
                     setShowActions(false);
                   }}
                 >
-                  Copy Link
+                  <span className="text-label-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="9" y="9" width="13" height="13" rx="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  </span>
+                  <span>Copy Link</span>
                 </motion.button>
                 <motion.button
                   onClick={() => {
                     triggerHaptic('light');
                     setShowActions(false);
                   }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  className="w-full mt-2 py-4 text-center text-[17px] font-medium text-[var(--color-label-secondary)] border border-[var(--color-separator)] rounded-xl hover:bg-[var(--color-fill)] transition-colors"
-                  style={{ letterSpacing: '-0.022em' }}
+                  whileTap={{ scale: 0.99 }}
+                  transition={springQuick}
+                  className="w-full mt-3 py-4 text-center text-[17px] font-medium rounded-xl text-label-secondary hover:text-label hover:bg-white/5 transition-colors"
+                  style={{
+                    letterSpacing: '-0.022em',
+                    border: '1px solid var(--color-separator)'
+                  }}
                 >
                   Cancel
                 </motion.button>
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+      {/* Text Selection Menu */}
+      <AnimatePresence>
+        {selection && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={springQuick}
+            className="fixed z-[200] flex items-center gap-1 p-1 rounded-xl shadow-xl"
+            style={{
+              top: Math.max(10, selection.top - 50),
+              left: Math.max(10, Math.min(window.innerWidth - 140, selection.left + (selection.width / 2) - 60)),
+              background: 'rgba(30, 30, 32, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+            }}
+          >
+            <button
+              onClick={() => {
+                triggerHaptic('success');
+                addHighlight(selection.text);
+                setSelection(null);
+                window.getSelection().removeAllRanges();
+              }}
+              className="px-3 py-1.5 text-[13px] font-semibold text-white hover:text-[var(--color-tint)] transition-colors"
+            >
+              Highlight
+            </button>
+            <div className="w-px h-4 bg-white/20" />
+             <button
+              onClick={() => {
+                triggerHaptic('light');
+                setSelection(null);
+                window.getSelection().removeAllRanges();
+              }}
+              className="px-2 py-1.5 text-[13px] font-medium text-label-tertiary hover:text-white transition-colors"
+            >
+              ✕
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>

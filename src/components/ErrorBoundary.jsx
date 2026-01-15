@@ -123,20 +123,27 @@ export default class ErrorBoundary extends Component {
                   onClick={this.handleRetry}
                   whileTap={{ scale: 0.98 }}
                   transition={springTactile}
-                  className="px-6 py-3 text-[15px] font-semibold text-white bg-[var(--color-tint)] rounded-xl hover:opacity-90 transition-opacity"
+                  className="relative px-6 py-3 text-[15px] font-semibold text-white rounded-xl overflow-hidden"
                   style={{
                     letterSpacing: '-0.016em',
-                    boxShadow: '0 4px 16px rgba(10, 132, 255, 0.3)'
+                    background: 'var(--color-tint)',
+                    boxShadow: '0 2px 8px rgba(10, 132, 255, 0.3)'
                   }}
                 >
-                  Try Again
+                  <span className="relative z-10">Try Again</span>
                 </motion.button>
                 <motion.button
                   onClick={this.handleReload}
                   whileTap={{ scale: 0.98 }}
+                  whileHover="hover"
+                  initial="rest"
                   transition={springTactile}
-                  className="px-6 py-3 text-[15px] font-semibold text-label bg-[var(--color-fill)] rounded-xl hover:bg-[var(--color-fill-secondary)] transition-colors"
-                  style={{ letterSpacing: '-0.016em' }}
+                  className="relative px-6 py-3 text-[15px] font-semibold rounded-xl overflow-hidden"
+                  style={{
+                    letterSpacing: '-0.016em',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    color: 'var(--color-label)'
+                  }}
                 >
                   Reload Page
                 </motion.button>

@@ -34,20 +34,21 @@ export function KevinLogo({ size = 40, className = '' }) {
   );
 }
 
-// Kevin App Icon
+// Kevin App Icon - Premium gradient with shimmer
 export function KevinAppIcon({ size = 80, className = '' }) {
   const iconSize = size * 0.5;
   return (
     <div
-      className={`flex items-center justify-center ${className}`}
+      className={`relative flex items-center justify-center overflow-hidden ${className}`}
       style={{
         width: size,
         height: size,
         borderRadius: size * 0.225,
-        background: '#0A84FF'
+        background: '#0A84FF',
+        boxShadow: '0 8px 32px rgba(10, 132, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
       }}
     >
-      <KevinLogo size={iconSize} />
+      <KevinLogo size={iconSize} className="relative z-10" />
     </div>
   );
 }
@@ -58,31 +59,6 @@ export default function LoadingScreen() {
       className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden"
       role="status"
     >
-      {/* Ambient glow effect - subtle radial gradient */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-      >
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
-          style={{
-            background: 'radial-gradient(circle, rgba(10, 132, 255, 0.15) 0%, rgba(10, 132, 255, 0.05) 40%, transparent 70%)',
-            filter: 'blur(60px)'
-          }}
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.6, 0.8, 0.6]
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: 'easeInOut'
-          }}
-        />
-      </motion.div>
-
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -154,24 +130,29 @@ export default function LoadingScreen() {
           Your intelligent reader
         </motion.p>
 
-        {/* Premium loading indicator - smooth wave */}
-        <div className="flex gap-1.5">
-          {[0, 1, 2].map((i) => (
+        {/* Premium loading indicator - flowing dots */}
+        <div className="flex gap-2 relative">
+          {[
+            { color: '#0A84FF', delay: 0 },
+            { color: '#5E5CE6', delay: 0.15 },
+            { color: '#BF5AF2', delay: 0.3 },
+          ].map((dot, i) => (
             <motion.div
               key={i}
-              className="w-1.5 h-1.5 rounded-full"
+              className="w-2 h-2 rounded-full relative z-10"
               style={{
-                background: '#0A84FF',
-                boxShadow: '0 0 8px rgba(10, 132, 255, 0.5)'
+                background: dot.color,
+                boxShadow: `0 0 10px ${dot.color}60`
               }}
               animate={{
-                scale: [1, 1.4, 1],
-                opacity: [0.5, 1, 0.5],
+                scale: [1, 1.5, 1],
+                opacity: [0.6, 1, 0.6],
+                y: [0, -4, 0],
               }}
               transition={{
                 duration: 1.2,
                 repeat: Infinity,
-                delay: i * 0.15,
+                delay: dot.delay,
                 ease: [0.4, 0, 0.2, 1]
               }}
             />

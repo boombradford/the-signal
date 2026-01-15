@@ -1,9 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+/**
+ * DailyBriefing - AI-powered news catch up
+ *
+ * Refined experience for quickly understanding your feeds.
+ * - Auto-generates on open
+ * - Time period filtering
+ * - Persistent audio playback
+ * - Copy/share functionality
+ */
+
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDailyBriefing } from '../hooks/useAI';
-import { springGentle, springSnappy, springTactile, easeOut, triggerHaptic } from '../utils/animations';
+import { useAudio } from '../contexts/AudioContext';
+import { springQuick, easeApple, easeOut, triggerHaptic } from '../utils/animations';
 
-// Icons - minimal
+// Icons
 const Icons = {
   close: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -16,62 +27,88 @@ const Icons = {
     </svg>
   ),
   play: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
       <path d="M8 5v14l11-7z" />
     </svg>
   ),
   pause: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
       <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
     </svg>
   ),
-  stop: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-      <rect x="4" y="4" width="16" height="16" rx="2" />
+  copy: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </svg>
-  )
+  ),
+  share: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <polyline points="16 6 12 2 8 6" />
+      <line x1="12" y1="2" x2="12" y2="15" />
+    </svg>
+  ),
+  refresh: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
+  ),
+  check: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
 };
 
-// Audio Equalizer Animation - dancing bars
+// Audio Equalizer - Simple animated bars
 function AudioEqualizer({ isPlaying }) {
   const bars = [
-    { delay: 0, minHeight: 3, maxHeight: 16 },
-    { delay: 0.1, minHeight: 4, maxHeight: 20 },
-    { delay: 0.15, minHeight: 3, maxHeight: 14 },
-    { delay: 0.05, minHeight: 5, maxHeight: 18 },
-    { delay: 0.2, minHeight: 3, maxHeight: 12 },
+    { delay: 0, minH: 4, maxH: 12 },
+    { delay: 0.1, minH: 4, maxH: 16 },
+    { delay: 0.15, minH: 4, maxH: 10 },
+    { delay: 0.05, minH: 4, maxH: 14 },
   ];
 
   return (
-    <div className="flex items-end gap-[3px] h-5">
+    <div className="flex items-center gap-[2px] h-4">
       {bars.map((bar, i) => (
         <motion.div
           key={i}
-          className="w-[3px] rounded-full bg-[var(--color-tint)]"
+          className="w-[2.5px] rounded-full bg-current"
           animate={isPlaying ? {
-            height: [bar.minHeight, bar.maxHeight, bar.minHeight],
-            opacity: [0.6, 1, 0.6],
-          } : {
-            height: bar.minHeight,
-            opacity: 0.4,
-          }}
+            height: [bar.minH, bar.maxH, bar.minH],
+            opacity: [0.7, 1, 0.7],
+          } : { height: 4, opacity: 0.5 }}
           transition={isPlaying ? {
-            duration: 0.4 + Math.random() * 0.3,
+            duration: 0.6,
             repeat: Infinity,
             ease: "easeInOut",
             delay: bar.delay,
-          } : {
-            duration: 0.2
-          }}
-          style={{ height: bar.minHeight }}
+          } : { duration: 0.2 }}
+          style={{ height: 4 }}
         />
       ))}
     </div>
   );
 }
 
-// Removed - using imported animations
+// Time period options
+const TIME_PERIODS = [
+  { id: 'today', label: 'Today', hours: 24 },
+  { id: 'recent', label: 'Last 12h', hours: 12 },
+  { id: 'week', label: 'This Week', hours: 168 },
+];
 
+const STYLES = [
+  { id: 'briefing', label: 'Briefing' },
+  { id: 'topics', label: 'Insights' },
+];
+
+// Format briefing text into React elements
 function formatBriefingText(text) {
   if (!text) return null;
 
@@ -82,7 +119,7 @@ function formatBriefingText(text) {
   const flushList = () => {
     if (listItems.length > 0) {
       elements.push(
-        <ul key={`list-${elements.length}`} className="space-y-2 my-3 ml-4">
+        <ul key={`list-${elements.length}`} className="space-y-2.5 my-4">
           {listItems}
         </ul>
       );
@@ -97,19 +134,15 @@ function formatBriefingText(text) {
       return;
     }
 
-    // Headers - SF Pro Display
+    // Headers with ** wrapping
     if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
       flushList();
       const headerText = trimmed.slice(2, -2);
       elements.push(
         <h3
           key={index}
-          className="text-[16px] text-label mt-5 mb-2 first:mt-0"
-          style={{
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
-            fontWeight: 500,
-            letterSpacing: '-0.01em'
-          }}
+          className="text-[15px] font-semibold text-label mt-6 mb-2 first:mt-0"
+          style={{ letterSpacing: '-0.01em' }}
         >
           {headerText}
         </h3>
@@ -117,25 +150,19 @@ function formatBriefingText(text) {
       return;
     }
 
+    // Headers with ** at start
     if (trimmed.match(/^\*\*[^*]+\*\*/)) {
       flushList();
       const headerText = trimmed.match(/^\*\*([^*]+)\*\*/)[1];
       const rest = trimmed.replace(/^\*\*[^*]+\*\*:?\s*/, '');
       elements.push(
-        <div key={index} className="mt-5 mb-2 first:mt-0">
-          <span
-            className="text-[16px] text-label"
-            style={{
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
-              fontWeight: 500,
-              letterSpacing: '-0.01em'
-            }}
-          >
+        <div key={index} className="mt-6 mb-2 first:mt-0">
+          <span className="text-[15px] font-semibold text-label" style={{ letterSpacing: '-0.01em' }}>
             {headerText}
           </span>
-          <span className="text-label-secondary text-[14px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
-            {rest && ` ${rest}`}
-          </span>
+          {rest && (
+            <span className="text-[14px] text-label-secondary"> {rest}</span>
+          )}
         </div>
       );
       return;
@@ -145,7 +172,10 @@ function formatBriefingText(text) {
     if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
       const bulletText = trimmed.replace(/^[•\-*]\s*/, '');
       listItems.push(
-        <li key={index} className="text-[15px] text-label-secondary leading-relaxed">
+        <li
+          key={index}
+          className="text-[14px] text-label-secondary leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-label-tertiary"
+        >
           {bulletText}
         </li>
       );
@@ -155,7 +185,7 @@ function formatBriefingText(text) {
     // Paragraphs
     flushList();
     elements.push(
-      <p key={index} className="text-[15px] text-label-secondary leading-relaxed my-2">
+      <p key={index} className="text-[14px] text-label-secondary leading-relaxed my-3">
         {trimmed}
       </p>
     );
@@ -165,29 +195,38 @@ function formatBriefingText(text) {
   return elements;
 }
 
+// Get greeting based on time
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 21) return 'Good evening';
+  return 'Good night';
+}
+
 export default function DailyBriefing({ articles, isOpen, onClose }) {
   const { briefing, loading, error, generateBriefing, clearBriefing } = useDailyBriefing();
+  const { isPlaying, isLoading: audioLoading, hasAudio, play, togglePlayPause, stop } = useAudio();
+  const [timePeriod, setTimePeriod] = useState('today');
   const [style, setStyle] = useState('briefing');
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [audioLoading, setAudioLoading] = useState(false);
-  const audioRef = useRef(null);
+  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
+  // Filter articles by time period
+  const filteredArticles = useMemo(() => {
+    const period = TIME_PERIODS.find(p => p.id === timePeriod);
+    const cutoff = new Date(Date.now() - period.hours * 60 * 60 * 1000);
+    return articles.filter(a => {
+      const pubDate = new Date(a.pubDate);
+      return pubDate >= cutoff && !a.isRead;
+    });
+  }, [articles, timePeriod]);
 
+  // Auto-generate when opening or style changes
   useEffect(() => {
-    if (!isOpen && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-      setIsSpeaking(false);
+    if (isOpen && filteredArticles.length > 0 && (!briefing || briefing.style !== style) && !loading) {
+      generateBriefing(filteredArticles, style);
     }
-  }, [isOpen]);
+  }, [isOpen, filteredArticles, style]);
 
   const getCleanText = useCallback((text) => {
     if (!text) return '';
@@ -202,321 +241,211 @@ export default function DailyBriefing({ articles, isOpen, onClose }) {
   const handleSpeak = useCallback(async () => {
     if (!briefing?.briefing) return;
 
-    // If already playing, toggle pause/play
-    if (audioRef.current) {
-      if (isSpeaking) {
-        audioRef.current.pause();
-        setIsSpeaking(false);
-      } else {
-        audioRef.current.play();
-        setIsSpeaking(true);
-      }
+    if (hasAudio) {
+      togglePlayPause();
       return;
     }
 
-    // Generate new audio with ElevenLabs
-    setAudioLoading(true);
+    const text = getCleanText(briefing.briefing);
+    await play(text, { title: 'Daily Briefing', type: 'briefing' });
+  }, [briefing, hasAudio, togglePlayPause, play, getCleanText]);
 
-    try {
-      const text = getCleanText(briefing.briefing);
+  const handleRegenerate = async () => {
+    stop();
+    clearBriefing();
+    await generateBriefing(filteredArticles, style);
+  };
 
-      const response = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
+  const handleCopy = async () => {
+    if (!briefing?.briefing) return;
+    await navigator.clipboard.writeText(briefing.briefing);
+    setCopied(true);
+    triggerHaptic('success');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-      if (!response.ok) {
-        throw new Error('Failed to generate audio');
+  const handleShare = async () => {
+    if (!briefing?.briefing) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${getGreeting()} Briefing`,
+          text: briefing.briefing,
+        });
+      } catch {
+        // User cancelled
       }
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-
-      audio.onplay = () => setIsSpeaking(true);
-      audio.onpause = () => setIsSpeaking(false);
-      audio.onended = () => {
-        setIsSpeaking(false);
-        audioRef.current = null;
-        URL.revokeObjectURL(audioUrl);
-      };
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        audioRef.current = null;
-      };
-
-      await audio.play();
-
-    } catch (err) {
-      console.error('TTS error:', err);
-      setIsSpeaking(false);
-    } finally {
-      setAudioLoading(false);
+    } else {
+      handleCopy();
     }
-  }, [briefing, isSpeaking, getCleanText]);
-
-  const handleStop = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
-      setIsSpeaking(false);
-    }
-  }, []);
-
-  const handleGenerate = async () => {
-    handleStop();
-    await generateBriefing(articles, style);
   };
 
   const handleClose = () => {
-    handleStop();
     clearBriefing();
     onClose();
   };
 
-  const unreadCount = articles.filter(a => !a.isRead).length;
+  const handleTimePeriodChange = (period) => {
+    setTimePeriod(period);
+    clearBriefing();
+  };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={easeOut}
-            className="fixed inset-0 z-[200] bg-black/40"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm"
             onClick={handleClose}
           />
 
+          {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.96 }}
-            transition={springGentle}
-            className="fixed inset-x-4 top-[12%] bottom-auto max-h-[76vh] z-[201] rounded-3xl overflow-hidden flex flex-col max-w-md mx-auto"
+            exit={{ opacity: 0, y: 20, scale: 0.98 }}
+            transition={easeApple}
+            className="fixed inset-x-4 top-[10%] bottom-auto max-h-[80vh] z-[201] rounded-2xl overflow-hidden flex flex-col max-w-lg mx-auto"
             style={{
-              background: 'rgba(15, 15, 18, 0.85)',
-              backdropFilter: 'blur(60px) saturate(200%)',
-              WebkitBackdropFilter: 'blur(60px) saturate(200%)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 -1px 0 rgba(255, 255, 255, 0.05) inset'
+              background: 'rgba(22, 22, 24, 0.95)',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-separator)]">
-              <div>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <div className="flex-1 min-w-0">
                 <h2
-                  className="text-[20px] text-label"
-                  style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
-                    fontWeight: 400,
-                    letterSpacing: '-0.015em'
-                  }}
+                  className="text-[18px] font-semibold text-label"
+                  style={{ letterSpacing: '-0.02em' }}
                 >
-                  Daily Briefing
+                  {getGreeting()}
                 </h2>
-                <p
-                  className="text-[12px] text-label-tertiary mt-0.5"
-                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
-                >
-                  {unreadCount} unread articles
+                <p className="text-[13px] text-label-tertiary mt-0.5">
+                  {filteredArticles.length} unread article{filteredArticles.length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                {/* Audio Equalizer - shows when playing */}
-                {briefing && isSpeaking && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={springTactile}
+
+              <div className="flex items-center gap-2">
+                {/* Audio controls */}
+                {briefing && (
+                  <motion.button
+                    onClick={() => {
+                      triggerHaptic('light');
+                      handleSpeak();
+                    }}
+                    disabled={audioLoading}
+                    whileTap={{ scale: 0.95 }}
+                    transition={springQuick}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
+                    style={{
+                      background: isPlaying ? 'var(--color-tint)' : 'transparent',
+                      color: isPlaying ? 'white' : 'var(--color-label-secondary)',
+                    }}
                   >
-                    <AudioEqualizer isPlaying={isSpeaking} />
-                  </motion.div>
+                    {audioLoading ? (
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      >
+                        {Icons.loading}
+                      </motion.span>
+                    ) : isPlaying ? (
+                      <>
+                        <AudioEqualizer isPlaying={true} />
+                        <span className="text-[13px] font-medium">Playing</span>
+                      </>
+                    ) : (
+                      <>
+                        {Icons.play}
+                        <span className="text-[13px] font-medium">Listen</span>
+                      </>
+                    )}
+                  </motion.button>
                 )}
 
-                {briefing && (
-                  <div className="flex items-center gap-1">
-                    <motion.button
-                      onClick={() => {
-                        triggerHaptic('light');
-                        handleSpeak();
-                      }}
-                      disabled={audioLoading}
-                      whileTap={{ scale: 0.9 }}
-                      transition={springTactile}
-                      className={`relative p-2.5 rounded-full transition-colors duration-150 ${
-                        isSpeaking
-                          ? 'bg-[var(--color-tint)] text-white'
-                          : 'text-label-secondary hover:text-label hover:bg-[var(--color-fill)]'
-                      }`}
-                    >
-                      {/* Pulsing glow when playing */}
-                      {isSpeaking && (
-                        <motion.div
-                          className="absolute inset-0 rounded-full bg-[var(--color-tint)]"
-                          animate={{
-                            scale: [1, 1.4, 1],
-                            opacity: [0.4, 0, 0.4],
-                          }}
-                          transition={{
-                            duration: 1.5,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                        />
-                      )}
-                      <span className="relative z-10">
-                        {audioLoading ? (
-                          <motion.span
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          >
-                            {Icons.loading}
-                          </motion.span>
-                        ) : isSpeaking ? Icons.pause : Icons.play}
-                      </span>
-                    </motion.button>
-                    <AnimatePresence>
-                      {(isSpeaking || audioRef.current) && (
-                        <motion.button
-                          initial={{ opacity: 0, scale: 0.8, width: 0 }}
-                          animate={{ opacity: 1, scale: 1, width: 'auto' }}
-                          exit={{ opacity: 0, scale: 0.8, width: 0 }}
-                          onClick={() => {
-                            triggerHaptic('light');
-                            handleStop();
-                          }}
-                          whileTap={{ scale: 0.9 }}
-                          transition={springTactile}
-                          className="p-2 text-label-secondary hover:text-label hover:bg-[var(--color-fill)] rounded-full transition-colors duration-150"
-                        >
-                          {Icons.stop}
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
+                {/* Close */}
                 <motion.button
                   onClick={() => {
                     triggerHaptic('light');
                     handleClose();
                   }}
-                  whileTap={{ scale: 0.9 }}
-                  transition={springTactile}
-                  className="p-2 text-label-secondary hover:text-label transition-colors duration-150"
+                  whileTap={{ scale: 0.95 }}
+                  transition={springQuick}
+                  className="p-2 rounded-lg text-label-tertiary hover:text-label-secondary hover:bg-white/5 transition-colors"
                 >
                   {Icons.close}
                 </motion.button>
               </div>
             </div>
 
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-5 relative">
-              {/* Animated waveform background when speaking */}
-              <AnimatePresence>
-                {isSpeaking && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 pointer-events-none overflow-hidden"
-                  >
-                    {/* Multiple wave layers */}
-                    {[0, 1, 2].map((i) => (
-                      <motion.div
-                        key={i}
-                        className="absolute inset-x-0 h-32"
-                        style={{
-                          top: `${20 + i * 30}%`,
-                          background: `linear-gradient(90deg, transparent 0%, rgba(10, 132, 255, ${0.03 - i * 0.008}) 50%, transparent 100%)`,
-                        }}
-                        animate={{
-                          scaleY: [1, 1.5, 1],
-                          y: [0, -10, 0],
-                        }}
-                        transition={{
-                          duration: 2 + i * 0.5,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: i * 0.3,
-                        }}
-                      />
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {!briefing && !loading && (
-                <div className="text-center py-8">
-                  <h3
-                    className="text-[22px] text-label mb-3"
-                    style={{
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
-                      fontWeight: 400,
-                      letterSpacing: '-0.015em'
-                    }}
-                  >
-                    Catch Up Quickly
-                  </h3>
-                  <p
-                    className="text-[14px] text-label-secondary mb-6 max-w-[260px] mx-auto leading-relaxed"
-                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
-                  >
-                    Get an AI summary of your {unreadCount} unread articles.
-                  </p>
-
-                  <div className="flex gap-2 justify-center mb-6">
-                    {[
-                      { id: 'briefing', label: 'Full' },
-                      { id: 'bullets', label: 'Key Points' },
-                      { id: 'topics', label: 'By Topic' }
-                    ].map(s => (
+            {/* Filters */}
+            <div className="px-5 py-3 border-b border-white/5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                {/* Time Periods */}
+                <div className="flex gap-2">
+                  {TIME_PERIODS.map(period => {
+                    const isSelected = timePeriod === period.id;
+                    return (
                       <motion.button
+                        key={period.id}
+                        onClick={() => {
+                          triggerHaptic('selection');
+                          handleTimePeriodChange(period.id);
+                        }}
+                        whileTap={{ scale: 0.97 }}
+                        transition={springQuick}
+                        className="px-3 py-1.5 text-[13px] font-medium rounded-lg transition-colors"
+                        style={{
+                          background: isSelected ? 'var(--color-tint)' : 'transparent',
+                          color: isSelected ? 'white' : 'var(--color-label-secondary)',
+                        }}
+                      >
+                        {period.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                {/* Style Toggle */}
+                <div className="flex bg-white/5 rounded-lg p-0.5">
+                  {STYLES.map(s => {
+                    const isSelected = style === s.id;
+                    return (
+                      <button
                         key={s.id}
                         onClick={() => {
                           triggerHaptic('selection');
+                          clearBriefing();
                           setStyle(s.id);
                         }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={springTactile}
-                        className={`px-3 py-1.5 text-[14px] rounded-md transition-colors duration-150 ${
-                          style === s.id
-                            ? 'bg-[var(--color-label)] text-[var(--color-background)]'
-                            : 'text-label-secondary hover:text-label'
+                        className={`px-3 py-1 text-[12px] font-medium rounded-md transition-all duration-200 ${
+                          isSelected 
+                            ? 'bg-white/10 text-white shadow-sm' 
+                            : 'text-label-tertiary hover:text-label-secondary'
                         }`}
                       >
                         {s.label}
-                      </motion.button>
-                    ))}
-                  </div>
-
-                  <motion.button
-                    onClick={() => {
-                      triggerHaptic('medium');
-                      handleGenerate();
-                    }}
-                    disabled={unreadCount === 0}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={springTactile}
-                    className="h-10 px-6 text-[15px] font-medium text-[var(--color-background)] bg-[var(--color-label)] rounded-lg hover:opacity-90 transition-opacity duration-150 disabled:opacity-50"
-                  >
-                    Generate
-                  </motion.button>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            </div>
 
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Loading state */}
               {loading && (
-                <div className="py-4">
-                  {/* Anticipatory loading - premium styling */}
-                  <div className="flex items-center gap-2 mb-6">
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-6">
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -524,106 +453,118 @@ export default function DailyBriefing({ articles, isOpen, onClose }) {
                     >
                       {Icons.loading}
                     </motion.div>
-                    <p
-                      className="text-[14px] text-[var(--color-tint)]"
-                      style={{ letterSpacing: '-0.01em' }}
-                    >
-                      Analyzing {unreadCount} articles...
+                    <p className="text-[14px] text-[var(--color-tint)]">
+                      Analyzing {filteredArticles.length} articles...
                     </p>
                   </div>
 
-                  {/* Premium shimmer skeleton */}
-                  <div className="space-y-4">
-                    {/* Header skeleton */}
-                    <motion.div
-                      className="h-4 w-24 rounded-md"
-                      style={{
-                        background: 'linear-gradient(90deg, rgba(10, 132, 255, 0.1) 0%, rgba(10, 132, 255, 0.2) 50%, rgba(10, 132, 255, 0.1) 100%)',
-                        backgroundSize: '200% 100%'
-                      }}
-                      animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                    />
-                    {/* Content skeleton */}
-                    <div className="space-y-2.5">
-                      {[1, 0.85, 0.7].map((width, i) => (
-                        <motion.div
-                          key={i}
-                          className="h-4 rounded-md"
-                          style={{
-                            width: `${width * 100}%`,
-                            background: 'linear-gradient(90deg, rgba(10, 132, 255, 0.08) 0%, rgba(10, 132, 255, 0.16) 50%, rgba(10, 132, 255, 0.08) 100%)',
-                            backgroundSize: '200% 100%'
-                          }}
-                          animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: i * 0.1 }}
-                        />
-                      ))}
+                  {/* Skeleton */}
+                  <div className="space-y-4 animate-pulse">
+                    <div className="h-4 w-32 rounded bg-white/5" />
+                    <div className="space-y-2">
+                      <div className="h-3 w-full rounded bg-white/5" />
+                      <div className="h-3 w-[90%] rounded bg-white/5" />
+                      <div className="h-3 w-[75%] rounded bg-white/5" />
                     </div>
-                    {/* Second section */}
-                    <motion.div
-                      className="h-4 w-28 rounded-md mt-6"
-                      style={{
-                        background: 'linear-gradient(90deg, rgba(10, 132, 255, 0.1) 0%, rgba(10, 132, 255, 0.2) 50%, rgba(10, 132, 255, 0.1) 100%)',
-                        backgroundSize: '200% 100%'
-                      }}
-                      animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: 0.3 }}
-                    />
-                    <div className="space-y-2 ml-4">
-                      {[1, 0.85, 0.8].map((width, i) => (
-                        <motion.div
-                          key={i}
-                          className="h-3 rounded-md"
-                          style={{
-                            width: `${width * 100}%`,
-                            background: 'linear-gradient(90deg, rgba(10, 132, 255, 0.06) 0%, rgba(10, 132, 255, 0.12) 50%, rgba(10, 132, 255, 0.06) 100%)',
-                            backgroundSize: '200% 100%'
-                          }}
-                          animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: 0.4 + i * 0.1 }}
-                        />
-                      ))}
+                    <div className="h-4 w-24 rounded bg-white/5 mt-6" />
+                    <div className="space-y-2 pl-4">
+                      <div className="h-3 w-full rounded bg-white/5" />
+                      <div className="h-3 w-[85%] rounded bg-white/5" />
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* Error state */}
               {error && (
-                <div className="text-center py-8">
+                <div className="p-5 text-center">
                   <p className="text-[14px] text-label-secondary mb-4">{error}</p>
-                  <button
-                    onClick={handleGenerate}
-                    className="text-[14px] font-medium text-label hover:opacity-70 transition-opacity duration-150"
+                  <motion.button
+                    onClick={handleRegenerate}
+                    whileTap={{ scale: 0.98 }}
+                    transition={springQuick}
+                    className="text-[14px] font-medium text-[var(--color-tint)]"
                   >
                     Try Again
-                  </button>
+                  </motion.button>
                 </div>
               )}
 
+              {/* Empty state */}
+              {!loading && !error && filteredArticles.length === 0 && (
+                <div className="p-8 text-center">
+                  <p className="text-[15px] text-label-secondary mb-2">
+                    You're all caught up!
+                  </p>
+                  <p className="text-[13px] text-label-tertiary">
+                    No unread articles in this time period.
+                  </p>
+                </div>
+              )}
+
+              {/* Briefing content */}
               {briefing && (
-                <div>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={easeApple}
+                  className="p-5"
+                >
                   <p className="text-[12px] text-label-tertiary mb-4">
                     Based on {briefing.articleCount} articles
                   </p>
                   {formatBriefingText(briefing.briefing)}
-                </div>
+                </motion.div>
               )}
             </div>
 
-            {/* Footer */}
+            {/* Footer actions */}
             {briefing && (
-              <div className="p-4 border-t border-[var(--color-separator)]">
+              <div className="px-5 py-4 border-t border-white/5 flex items-center gap-2">
                 <motion.button
                   onClick={() => {
                     triggerHaptic('light');
-                    clearBriefing();
+                    handleRegenerate();
                   }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={springTactile}
-                  className="w-full py-2.5 text-[14px] text-label-secondary border border-[var(--color-separator)] rounded-lg hover:bg-[var(--color-fill)] transition-colors duration-150"
+                  whileTap={{ scale: 0.97 }}
+                  transition={springQuick}
+                  className="flex items-center gap-2 px-3 py-2 text-[13px] font-medium text-label-secondary rounded-lg hover:bg-white/5 hover:text-label transition-colors"
                 >
-                  Generate New
+                  {Icons.refresh}
+                  <span>Regenerate</span>
+                </motion.button>
+
+                <div className="flex-1" />
+
+                {/* Copy button */}
+                <motion.button
+                  onClick={() => {
+                    triggerHaptic('light');
+                    handleCopy();
+                  }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springQuick}
+                  className="flex items-center gap-2 px-3 py-2 text-[13px] font-medium rounded-lg transition-colors"
+                  style={{
+                    color: copied ? 'white' : 'var(--color-label-secondary)',
+                    background: copied ? '#30D158' : 'transparent',
+                  }}
+                >
+                  {copied ? Icons.check : Icons.copy}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
+                </motion.button>
+
+                <motion.button
+                  onClick={() => {
+                    triggerHaptic('light');
+                    handleShare();
+                  }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springQuick}
+                  className="flex items-center gap-2 px-3 py-2 text-[13px] font-medium text-label-secondary rounded-lg hover:bg-white/5 hover:text-label transition-colors"
+                >
+                  {Icons.share}
+                  <span>Share</span>
                 </motion.button>
               </div>
             )}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 import { AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useInitDatabase, useFeeds, useArticles } from './hooks/useDatabase';
 import { useReadingStats } from './hooks/useReadingStats';
+import { useFeedSync } from './hooks/useFeedSync';
 
 // Components
 import BottomNav from './components/BottomNav';
@@ -14,10 +15,15 @@ import AddFeedSheet from './components/AddFeedSheet';
 import LoadingScreen from './components/LoadingScreen';
 import KeyboardShortcuts from './components/KeyboardShortcuts';
 import ReadingStats from './components/ReadingStats';
+import Onboarding from './components/Onboarding';
+import MiniAudioPlayer from './components/MiniAudioPlayer';
+import { AudioProvider } from './contexts/AudioContext';
 
 // Context for reading stats
 const ReadingStatsContext = createContext(null);
 export const useReadingStatsContext = () => useContext(ReadingStatsContext);
+
+const ONBOARDING_KEY = 'kevin_onboarding_complete';
 
 export default function App() {
   const { isReady, error } = useInitDatabase();
@@ -26,12 +32,61 @@ export default function App() {
   const readHistory = allArticles.filter(a => a.isRead);
   const savedArticles = allArticles.filter(a => a.isSaved);
   const readingStats = useReadingStats();
+  const { subscribeFeed } = useFeedSync();
   const [activeTab, setActiveTab] = useState('feed');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // Used to trigger FeedView refresh
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+
+  // Check if user has completed onboarding
+  useEffect(() => {
+    const hasCompleted = localStorage.getItem(ONBOARDING_KEY) === 'true';
+    // Also check if user already has feeds (returning user or skip)
+    if (!hasCompleted && feeds.length === 0) {
+      setShowOnboarding(true);
+    }
+    setOnboardingChecked(true);
+  }, [feeds.length]);
+
+  // Handle onboarding completion with parallel subscription
+  const handleOnboardingComplete = useCallback(async (feedsToAdd, selectedTopics, onProgress) => {
+    // Mark onboarding as complete
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+
+    // Store user interests
+    if (selectedTopics.length > 0) {
+      localStorage.setItem('kevin_interests', JSON.stringify(selectedTopics));
+    }
+
+    // Subscribe to feeds in parallel batches for speed
+    const BATCH_SIZE = 5;
+    let completed = 0;
+
+    for (let i = 0; i < feedsToAdd.length; i += BATCH_SIZE) {
+      const batch = feedsToAdd.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(
+        batch.map(async (feed) => {
+          try {
+            await subscribeFeed(feed.url);
+          } catch (e) {
+            console.error('Failed to subscribe to feed:', feed.url, e);
+          }
+          completed++;
+          onProgress?.(completed, feedsToAdd.length);
+        })
+      );
+    }
+
+    // Refresh feeds list
+    refetchFeeds();
+    setRefreshKey(k => k + 1);
+    setShowOnboarding(false);
+  }, [subscribeFeed, refetchFeeds]);
+
 
   // Keyboard shortcut: ? to toggle help
   useEffect(() => {
@@ -89,8 +144,13 @@ export default function App() {
     setShowAddFeed(true);
   }, []);
 
-  if (!isReady) {
+  if (!isReady || !onboardingChecked) {
     return <LoadingScreen />;
+  }
+
+  // Show onboarding for new users
+  if (showOnboarding) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
   if (error) {
@@ -111,9 +171,10 @@ export default function App() {
   }
 
   return (
-    <ReadingStatsContext.Provider value={readingStats}>
-      <div className="min-h-screen bg-grouped">
-        <LayoutGroup>
+    <AudioProvider>
+      <ReadingStatsContext.Provider value={readingStats}>
+        <div className="min-h-screen bg-grouped">
+          <LayoutGroup>
           {/* Main Content Area */}
           <main className="pb-[calc(49px+env(safe-area-inset-bottom))]">
             <AnimatePresence mode="wait">
@@ -123,7 +184,6 @@ export default function App() {
                   onSelectArticle={openArticle}
                   onAddFeed={() => setShowAddFeed(true)}
                   onLogoClick={goHome}
-                  onShowStats={() => setShowStats(true)}
                 />
               )}
 
@@ -196,9 +256,13 @@ export default function App() {
           onClose={() => setShowStats(false)}
         />
 
-        {/* Keyboard Shortcuts Modal */}
-        <KeyboardShortcuts isOpen={showShortcuts} onClose={closeShortcuts} />
-      </div>
-    </ReadingStatsContext.Provider>
+          {/* Keyboard Shortcuts Modal */}
+          <KeyboardShortcuts isOpen={showShortcuts} onClose={closeShortcuts} />
+
+          {/* Persistent Audio Player */}
+          <MiniAudioPlayer />
+        </div>
+      </ReadingStatsContext.Provider>
+    </AudioProvider>
   );
 }

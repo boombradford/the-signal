@@ -64,82 +64,39 @@ export default function BottomNav({ activeTab, onTabChange }) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50"
-      style={{
-        background: 'rgba(0, 0, 0, 0.88)',
-        backdropFilter: 'blur(30px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(30px) saturate(180%)',
-        borderTop: '0.5px solid rgba(255, 255, 255, 0.06)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
-      }}
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[rgba(22,22,24,0.85)] backdrop-blur-xl border-t border-white/10"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       role="tablist"
       aria-label="Main navigation"
     >
-      <div className="relative h-[50px] flex items-center justify-around max-w-[500px] mx-auto">
-        {/* Active indicator - animated pill that slides */}
-        <motion.div
-          className="absolute top-1 h-[2px] rounded-full"
-          style={{
-            width: 'calc(25% - 24px)',
-            background: 'var(--color-tint)',
-            boxShadow: '0 0 8px rgba(10, 132, 255, 0.5)'
-          }}
-          animate={{
-            left: `calc(${activeIndex * 25}% + 12px)`
-          }}
-          transition={springTactile}
-        />
-
-        {tabs.map((tab, index) => {
+      <div className="h-[50px] flex items-center justify-around max-w-[500px] mx-auto">
+        {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-
           return (
             <motion.button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[44px] transition-colors duration-150 ${
-                isActive
-                  ? 'text-[var(--color-tint)]'
-                  : 'text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)]'
-              }`}
-              role="tab"
-              aria-selected={isActive}
-              whileTap={{ scale: 0.9 }}
+              className="relative flex flex-col items-center justify-center gap-1 w-full h-full"
+              style={{ color: isActive ? 'var(--color-tint)' : 'var(--color-label-tertiary)' }}
+              whileTap={{ scale: 0.92 }}
               transition={springSnappy}
             >
-              {/* Icon with subtle scale on active */}
-              <motion.div
-                className="relative"
-                animate={{ scale: isActive ? 1.05 : 1 }}
-                transition={springTactile}
-              >
+              <div className="relative">
                 {tab.icon(isActive)}
-
-                {/* Badge - with improved animation */}
                 <AnimatePresence>
                   {tab.badge && (
-                    <motion.span
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      transition={springTactile}
-                      className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1
-                                 text-[10px] font-semibold text-white bg-[#FF3B30]
-                                 rounded-full flex items-center justify-center"
-                      style={{
-                        boxShadow: '0 2px 6px rgba(255, 59, 48, 0.4)'
-                      }}
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-1 -right-2 min-w-[16px] h-[16px] px-1 bg-[#FF3B30] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm"
                     >
                       {tab.badge > 99 ? '99+' : tab.badge}
-                    </motion.span>
+                    </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
-
-              <span
-                className="text-[10px] font-medium"
-                style={{ letterSpacing: '0.01em' }}
-              >
+              </div>
+              <span className="text-[10px] font-medium" style={{ letterSpacing: '0.01em' }}>
                 {tab.label}
               </span>
             </motion.button>

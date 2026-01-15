@@ -91,18 +91,17 @@ export default function Header({
                 }}
                 whileTap={{ scale: 0.95, x: -2 }}
                 transition={springTactile}
-                className="flex items-center gap-1 text-[var(--color-tint)] hover:opacity-70 transition-opacity duration-150 -ml-1"
+                className="flex items-center gap-1 -ml-1 text-[var(--color-tint)]"
                 aria-label="Go back"
               >
-                <motion.svg
+                <svg
                   width="8"
                   height="14"
                   viewBox="0 0 8 14"
                   fill="none"
-                  whileTap={{ x: -2 }}
                 >
                   <path d="M7 1L1 7l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </motion.svg>
+                </svg>
                 <span className="text-[17px] font-normal" style={{ letterSpacing: '-0.022em' }}>
                   Back
                 </span>
@@ -239,7 +238,7 @@ export function SimpleHeader({ title, onBack, rightAction, onLogoClick }) {
     >
       <div className="safe-top" />
       <div className="h-11 flex items-center justify-between px-4 max-w-3xl mx-auto">
-        {/* Back button - Premium with haptic */}
+        {/* Back button */}
         <div className="min-w-[80px]">
           <motion.button
             onClick={() => {
@@ -248,18 +247,17 @@ export function SimpleHeader({ title, onBack, rightAction, onLogoClick }) {
             }}
             whileTap={{ scale: 0.95, x: -2 }}
             transition={springTactile}
-            className="flex items-center gap-1 text-[var(--color-tint)] hover:opacity-70 transition-opacity duration-150 -ml-1"
+            className="flex items-center gap-1 -ml-1 text-[var(--color-tint)]"
             aria-label="Go back"
           >
-            <motion.svg
+            <svg
               width="8"
               height="14"
               viewBox="0 0 8 14"
               fill="none"
-              whileTap={{ x: -2 }}
             >
               <path d="M7 1L1 7l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </motion.svg>
+            </svg>
             <span className="text-[17px] font-normal" style={{ letterSpacing: '-0.022em' }}>
               Back
             </span>

@@ -77,6 +77,12 @@ export default defineConfig({
         target: 'https://api.rss2json.com/v1/api.json',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/rss/, '')
+      },
+      // Proxy AI features to production for local development
+      '/api': {
+        target: 'https://kevin.cheap',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

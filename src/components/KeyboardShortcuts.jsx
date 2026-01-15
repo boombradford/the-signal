@@ -1,15 +1,21 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { springGentle, springTactile, triggerHaptic } from '../utils/animations';
+import { springQuick, easeApple, triggerHaptic } from '../utils/animations';
 
 const shortcuts = [
-  { keys: ['Esc'], description: 'Close article view' },
-  { keys: ['⌘', 'S'], description: 'Save article for later' },
-  { keys: ['⌘', 'O'], description: 'Open original in new tab' },
+  // Navigation
+  { keys: ['J'], description: 'Next article', category: 'Navigation' },
+  { keys: ['K'], description: 'Previous article' },
+  { keys: ['O'], description: 'Open selected article' },
+  { keys: ['Esc'], description: 'Clear selection / Close' },
+  // Actions
+  { keys: ['S'], description: 'Save article', category: 'Actions' },
+  { keys: ['M'], description: 'Mark as read' },
+  { keys: ['⌘', 'O'], description: 'Open original link' },
+  // General
+  { keys: ['?'], description: 'Toggle this help', category: 'General' },
   { keys: ['⌘', 'K'], description: 'Focus search' },
-  { keys: ['Enter'], description: 'Open selected article' },
-  { keys: ['?'], description: 'Toggle this help' },
 ];
 
 export default function KeyboardShortcuts({ isOpen, onClose }) {
@@ -63,7 +69,7 @@ export default function KeyboardShortcuts({ isOpen, onClose }) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={springGentle}
+            transition={easeApple}
             className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto z-50"
             role="dialog"
             aria-modal="true"
@@ -92,31 +98,48 @@ export default function KeyboardShortcuts({ isOpen, onClose }) {
 
               {/* Shortcuts list */}
               <div className="px-5 py-3">
-                <ul className="space-y-3">
+                <ul className="space-y-2">
                   {shortcuts.map((shortcut, index) => (
-                    <li
-                      key={index}
-                      className="flex items-center justify-between gap-4"
-                    >
-                      <span className="text-[15px] text-label">
-                        {shortcut.description}
-                      </span>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {shortcut.keys.map((key, keyIndex) => (
-                          <kbd
-                            key={keyIndex}
-                            className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 text-[13px] font-medium text-label-secondary bg-[var(--color-fill)] rounded-md border border-[var(--color-separator)] shadow-sm"
-                          >
-                            {key}
-                          </kbd>
-                        ))}
+                    <li key={index}>
+                      {shortcut.category && (
+                        <p className="text-[11px] font-medium text-label-tertiary uppercase tracking-wider mb-2 mt-2 first:mt-0">
+                          {shortcut.category}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-[15px] text-label">
+                          {shortcut.description}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {shortcut.keys.map((key, keyIndex) => (
+                            <motion.kbd
+                              key={keyIndex}
+                              className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 text-[12px] font-medium rounded"
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '1px solid rgba(255, 255, 255, 0.12)',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                                color: 'var(--color-label-secondary)',
+                              }}
+                              whileHover={{
+                                background: 'rgba(10, 132, 255, 0.15)',
+                                borderColor: 'rgba(10, 132, 255, 0.3)',
+                                color: '#0A84FF',
+                                boxShadow: '0 2px 8px rgba(10, 132, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+                              }}
+                              transition={{ duration: 0.15 }}
+                            >
+                              {key}
+                            </motion.kbd>
+                          ))}
+                        </div>
                       </div>
                     </li>
                   ))}
                 </ul>
 
-                <p className="mt-4 text-[13px] text-label-tertiary text-center">
-                  Use Ctrl instead of ⌘ on Windows/Linux
+                <p className="mt-4 pt-3 border-t border-[var(--color-separator)] text-[12px] text-label-tertiary text-center">
+                  Swipe cards to save or mark as read
                 </p>
               </div>
 
@@ -128,8 +151,12 @@ export default function KeyboardShortcuts({ isOpen, onClose }) {
                     onClose();
                   }}
                   whileTap={{ scale: 0.98 }}
-                  transition={springTactile}
-                  className="w-full py-3 text-[17px] font-semibold text-[var(--color-tint)] bg-[var(--color-fill)] rounded-xl hover:bg-[var(--color-fill-secondary)] transition-colors"
+                  transition={springQuick}
+                  className="w-full py-3 text-[17px] font-semibold text-white rounded-xl overflow-hidden"
+                  style={{
+                    background: 'var(--color-tint)',
+                    boxShadow: '0 2px 8px rgba(10, 132, 255, 0.3)',
+                  }}
                 >
                   Done
                 </motion.button>

@@ -24,10 +24,6 @@ You approach this project as a senior-level web developer at a Fortune 100 compa
 
 ## Design System - NON-NEGOTIABLE
 
-### Typography
-- **SF Pro Display** for titles (weight 700, tracking -0.032em)
-- **SF Pro Text** for body (weight 400, tracking -0.016em)
-- Use the font stack: `-apple-system, BlinkMacSystemFont, "SF Pro Display/Text", system-ui, sans-serif`
 
 ### Colors (Dark Mode Only)
 ```css
@@ -42,7 +38,7 @@ You approach this project as a senior-level web developer at a Fortune 100 compa
 - Use spring physics from `src/utils/animations.js`
 - Haptic feedback via `triggerHaptic('light'|'medium'|'success'|'selection')`
 - **NO bouncy/epilepsy-coded animations** - restraint is key
-- When in doubt, use a simple fade or no animation at all
+- When in doubt, use no animation at all
 
 ### Kevin Logo
 The logo is a heavy K monogram with signal arcs. See `src/components/KevinLogo.jsx`.

@@ -138,10 +138,10 @@ const Icons = {
     </svg>
   ),
   rss: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M4 11a9 9 0 0 1 9 9" />
-      <path d="M4 4a16 16 0 0 1 16 16" />
-      <circle cx="5" cy="19" r="1.5" fill="currentColor" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="rss-icon">
+      <path d="M4 11a9 9 0 0 1 9 9" stroke="#FF9500" strokeWidth="2" strokeLinecap="round" />
+      <path d="M4 4a16 16 0 0 1 16 16" stroke="#FF9500" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="5" cy="19" r="2" fill="#FF9500" />
     </svg>
   ),
   chevron: (
@@ -286,8 +286,10 @@ export default function AddFeedSheet({ onClose, onSuccess }) {
                 onClose();
               }}
               whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.05 }}
+              initial="rest"
               transition={springTactile}
-              className="px-4 py-2 text-[15px] font-medium text-[var(--color-tint)] rounded-lg hover:bg-[var(--color-fill)] transition-colors"
+              className="relative px-4 py-2 text-[15px] font-medium rounded-lg text-[var(--color-tint)] hover:bg-[var(--color-fill)]"
               style={{ letterSpacing: '-0.016em' }}
               aria-label="Cancel adding feed"
             >
@@ -435,28 +437,35 @@ export default function AddFeedSheet({ onClose, onSuccess }) {
           </AnimatePresence>
 
           {/* Submit button */}
-          <motion.button
-            onClick={() => handleSubmit()}
-            disabled={loading || !url.trim()}
-            className="glass-button-primary w-full mb-8"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            aria-busy={loading}
-          >
-            {loading ? (
-              <motion.span
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                className="inline-block"
-                aria-hidden="true"
-              >
-                {Icons.loading}
-              </motion.span>
-            ) : (
-              'Add Feed'
-            )}
-            {loading && <span className="sr-only">Adding feed...</span>}
-          </motion.button>
+          <div className="relative mb-8">
+            <motion.button
+              onClick={() => handleSubmit()}
+              disabled={loading || !url.trim()}
+              className="relative w-full h-12 text-[15px] font-semibold text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 overflow-hidden"
+              style={{
+                background: 'var(--color-tint)',
+                boxShadow: '0 2px 8px rgba(10, 132, 255, 0.25)',
+                letterSpacing: '-0.016em',
+              }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              aria-busy={loading}
+            >
+              {loading ? (
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="inline-block relative z-10"
+                  aria-hidden="true"
+                >
+                  {Icons.loading}
+                </motion.span>
+              ) : (
+                <span className="relative z-10">Add Feed</span>
+              )}
+              {loading && <span className="sr-only">Adding feed...</span>}
+            </motion.button>
+          </div>
 
           {/* Categorized Suggestions */}
           <div>
@@ -474,11 +483,26 @@ export default function AddFeedSheet({ onClose, onSuccess }) {
                     aria-expanded={expandedCategory === category.id}
                   >
                     <div className="flex items-center gap-3">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center"
-                        style={{ backgroundColor: `${category.color}15`, color: category.color }}
-                      >
-                        {category.icon}
+                      <div className="relative">
+                        <motion.div
+                          className="relative w-9 h-9 rounded-xl flex items-center justify-center"
+                          style={{
+                            backgroundColor: expandedCategory === category.id
+                              ? category.color
+                              : `${category.color}15`,
+                            color: expandedCategory === category.id ? 'white' : category.color,
+                          }}
+                          animate={expandedCategory === category.id ? {
+                            scale: [1, 1.05, 1],
+                          } : {}}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                          }}
+                        >
+                          {category.icon}
+                        </motion.div>
                       </div>
                       <div className="text-left">
                         <span className="font-display font-semibold text-label block">
@@ -517,12 +541,20 @@ export default function AddFeedSheet({ onClose, onSuccess }) {
                               transition={{ delay: index * 0.03 }}
                               onClick={() => handleSuggestionClick(feed)}
                               disabled={loadingFeed !== null}
-                              className="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--color-fill)] transition-colors disabled:opacity-50 text-left"
+                              className="group/feed w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--color-fill)] transition-colors disabled:opacity-50 text-left"
                             >
                               <div className="flex items-center gap-3">
-                                <span className="text-label-secondary" aria-hidden="true">
+                                <motion.span
+                                  className="text-label-secondary relative"
+                                  aria-hidden="true"
+                                  whileHover={{ scale: 1.1 }}
+                                  transition={{ duration: 0.2 }}
+                                  style={{
+                                    filter: 'drop-shadow(0 0 4px rgba(255, 149, 0, 0.3))',
+                                  }}
+                                >
                                   {Icons.rss}
-                                </span>
+                                </motion.span>
                                 <span className="font-display text-label">{feed.name}</span>
                               </div>
                               {loadingFeed === feed.url ? (
@@ -534,9 +566,14 @@ export default function AddFeedSheet({ onClose, onSuccess }) {
                                   {Icons.loading}
                                 </motion.span>
                               ) : (
-                                <span className="text-label-tertiary" aria-hidden="true">
+                                <motion.span
+                                  className="text-label-tertiary group-hover/feed:text-[var(--color-tint)] transition-colors"
+                                  aria-hidden="true"
+                                  whileHover={{ scale: 1.15, rotate: 90 }}
+                                  transition={{ duration: 0.2 }}
+                                >
                                   {Icons.add}
-                                </span>
+                                </motion.span>
                               )}
                             </motion.button>
                           ))}

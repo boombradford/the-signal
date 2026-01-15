@@ -61,12 +61,15 @@ export default async function handler(req, res) {
     }
 
     // Stream the audio response
-    const audioBuffer = await response.arrayBuffer();
-
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Length', audioBuffer.byteLength);
-
-    return res.status(200).send(Buffer.from(audioBuffer));
+    
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(Buffer.from(value));
+    }
+    res.end();
 
   } catch (error) {
     console.error('TTS error:', error);
