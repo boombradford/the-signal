@@ -118,27 +118,17 @@ export default function FeedView({ onSelectArticle, onAddFeed, onLogoClick }) {
     refetchArticles();
   }, [refetchFeeds, refetchArticles]);
 
-  const [timeFilter, setTimeFilter] = useState('24h'); // 'all' | '24h' | '12h'
-
   const articlesWithFeedTitles = useMemo(() => articles.map(article => ({
     ...article,
     feedTitle: feeds.find(f => f.id === article.feedId)?.title
   })), [articles, feeds]);
 
-  // Time Filter - Applied first
-  const timeFilteredArticles = useMemo(() => {
-    if (timeFilter === 'all') return articlesWithFeedTitles;
-    const hours = timeFilter === '24h' ? 24 : 12;
-    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-    return articlesWithFeedTitles.filter(a => new Date(a.pubDate) >= cutoff);
-  }, [articlesWithFeedTitles, timeFilter]);
-
-  const smartFeedArticles = useSmartFeed(timeFilteredArticles);
+  const smartFeedArticles = useSmartFeed(articlesWithFeedTitles);
 
   // Determine which set of articles to search/filter
-  const sourceArticles = selectedTag === 'FOR_YOU' 
-    ? smartFeedArticles 
-    : timeFilteredArticles;
+  const sourceArticles = selectedTag === 'FOR_YOU'
+    ? smartFeedArticles
+    : articlesWithFeedTitles;
 
   const { query, setQuery, clearSearch, filteredArticles, isSearching, isDebouncing } = useSearch(sourceArticles);
 
@@ -215,48 +205,8 @@ export default function FeedView({ onSelectArticle, onAddFeed, onLogoClick }) {
               triggerHaptic('light');
               setShowClip(true);
             }} />
-            {/* Time Filter Toggle - Premium */}
-            {feeds.length > 0 && articles.length > 0 && (
-              <motion.button
-                onClick={() => {
-                  triggerHaptic('selection');
-                  setTimeFilter(prev => prev === '24h' ? '12h' : prev === '12h' ? 'all' : '24h');
-                }}
-                whileTap={{ scale: 0.95 }}
-                transition={springQuick}
-                className="relative p-2.5 -m-0.5 rounded-lg transition-colors duration-150"
-                style={{
-                  color: timeFilter !== 'all' ? '#0A84FF' : 'var(--color-label-secondary)',
-                  background: timeFilter !== 'all'
-                    ? 'rgba(10, 132, 255, 0.12)'
-                    : 'transparent',
-                  boxShadow: timeFilter !== 'all'
-                    ? '0 0 12px rgba(10, 132, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                    : 'none',
-                }}
-                aria-label={`Time filter: ${timeFilter}`}
-              >
-                <motion.span
-                  style={{
-                    filter: timeFilter !== 'all' ? 'drop-shadow(0 0 4px rgba(10, 132, 255, 0.5))' : 'none',
-                  }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    {Icons.clock}
-                    {timeFilter !== 'all' && (
-                      <span 
-                        className="absolute -bottom-1.5 -right-2 text-[9px] font-bold px-1 rounded-full"
-                        style={{ background: 'var(--color-background)', color: '#0A84FF', border: '1px solid rgba(10, 132, 255, 0.3)' }}
-                      >
-                        {timeFilter}
-                      </span>
-                    )}
-                  </div>
-                </motion.span>
-              </motion.button>
-            )}
 
-            {/* View density toggle - Premium with gradient glow */}
+            {/* View density toggle */}
             {feeds.length > 0 && articles.length > 0 && (
               <motion.button
                 onClick={() => {
@@ -600,43 +550,6 @@ export default function FeedView({ onSelectArticle, onAddFeed, onLogoClick }) {
               >
                 Try adjusting your search or check for typos
               </p>
-            </motion.div>
-          )}
-
-          {/* Filtered empty state */}
-          {feeds.length > 0 && !isSearching && articles.length > 0 && finalArticles.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={easeApple}
-              className="flex flex-col items-center justify-center py-16 text-center"
-            >
-              <div
-                className="w-16 h-16 mb-5 rounded-2xl flex items-center justify-center"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)'
-                }}
-              >
-                <span className="text-label-tertiary">{Icons.clock}</span>
-              </div>
-              <p
-                className="text-[17px] text-label-secondary mb-4"
-                style={{ letterSpacing: '-0.022em' }}
-              >
-                No articles in the last {timeFilter}
-              </p>
-              <motion.button
-                onClick={() => {
-                  triggerHaptic('light');
-                  setTimeFilter('all');
-                }}
-                whileTap={{ scale: 0.98 }}
-                transition={springQuick}
-                className="px-6 py-2.5 text-[15px] font-medium text-[var(--color-tint)] border border-[var(--color-tint)]/30 rounded-full hover:bg-[var(--color-tint)]/10 transition-colors duration-200"
-              >
-                Show all articles
-              </motion.button>
             </motion.div>
           )}
 

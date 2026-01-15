@@ -3,17 +3,11 @@ import { triggerHaptic } from '../utils/animations';
 
 /**
  * usePullToRefresh - Premium iOS-style pull-to-refresh
- *
- * Design philosophy:
- * - Rubber-band physics feel
- * - Haptic feedback at threshold
- * - Smooth spring-based animations
- * - Subtle, refined indicator
  */
 
-const THRESHOLD = 80; // Distance to trigger refresh
-const RESISTANCE = 0.4; // Pull resistance factor (0-1)
-const MAX_PULL = 140; // Maximum pull distance
+const THRESHOLD = 80;
+const RESISTANCE = 0.5;
+const MAX_PULL = 150;
 
 export function usePullToRefresh({
   onRefresh,
@@ -21,85 +15,88 @@ export function usePullToRefresh({
 }) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isPulling, setIsPulling] = useState(false);
-  const [hasTriggeredHaptic, setHasTriggeredHaptic] = useState(false);
-  
-  const startY = useRef(0);
-  const currentY = useRef(0);
+
   const scrollRef = useRef(null);
+  const startY = useRef(0);
+  const isPulling = useRef(false);
+  const hasTriggeredHaptic = useRef(false);
+  const onRefreshRef = useRef(onRefresh);
 
-  const handleTouchStart = useCallback((e) => {
-    if (disabled || isRefreshing) return;
-    
-    const scrollTop = scrollRef.current?.scrollTop ?? 0;
-    if (scrollTop > 0) return; // Only trigger at top
-    
-    startY.current = e.touches[0].clientY;
-    setIsPulling(true);
-    setHasTriggeredHaptic(false);
-  }, [disabled, isRefreshing]);
+  // Keep onRefresh ref current
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
 
-  const handleTouchMove = useCallback((e) => {
-    if (!isPulling || disabled || isRefreshing) return;
-    
-    const scrollTop = scrollRef.current?.scrollTop ?? 0;
-    if (scrollTop > 0) {
-      setPullDistance(0);
-      return;
-    }
-
-    currentY.current = e.touches[0].clientY;
-    const delta = currentY.current - startY.current;
-    
-    if (delta > 0) {
-      // Apply resistance for rubber-band feel
-      const resistedDelta = Math.min(
-        delta * RESISTANCE * (1 - delta / (MAX_PULL * 3)),
-        MAX_PULL
-      );
-      
-      setPullDistance(resistedDelta);
-      
-      // Haptic feedback when crossing threshold
-      if (resistedDelta >= THRESHOLD && !hasTriggeredHaptic) {
-        triggerHaptic('medium');
-        setHasTriggeredHaptic(true);
-      }
-      
-      // Prevent default scroll
-      if (delta > 5) {
-        e.preventDefault();
-      }
-    }
-  }, [isPulling, disabled, isRefreshing, hasTriggeredHaptic]);
-
-  const handleTouchEnd = useCallback(async () => {
-    if (!isPulling || disabled) return;
-    
-    setIsPulling(false);
-    
-    if (pullDistance >= THRESHOLD && onRefresh) {
-      setIsRefreshing(true);
-      triggerHaptic('success');
-      
-      try {
-        await onRefresh();
-      } finally {
-        // Smooth return animation
-        await new Promise(resolve => setTimeout(resolve, 400));
-        setIsRefreshing(false);
-        setPullDistance(0);
-      }
-    } else {
-      // Spring back
-      setPullDistance(0);
-    }
-  }, [isPulling, pullDistance, onRefresh, disabled]);
-
-  // Attach touch listeners
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
+
+    const handleTouchStart = (e) => {
+      if (disabled || isRefreshing) return;
+
+      const scrollTop = element.scrollTop;
+      if (scrollTop > 5) return; // Only trigger near top
+
+      startY.current = e.touches[0].clientY;
+      isPulling.current = true;
+      hasTriggeredHaptic.current = false;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isPulling.current || disabled || isRefreshing) return;
+
+      const scrollTop = element.scrollTop;
+      if (scrollTop > 5) {
+        setPullDistance(0);
+        return;
+      }
+
+      const currentY = e.touches[0].clientY;
+      const delta = currentY - startY.current;
+
+      if (delta > 0) {
+        // Apply resistance
+        const resistedDelta = Math.min(
+          delta * RESISTANCE * (1 - delta / (MAX_PULL * 4)),
+          MAX_PULL
+        );
+
+        setPullDistance(resistedDelta);
+
+        // Haptic at threshold
+        if (resistedDelta >= THRESHOLD && !hasTriggeredHaptic.current) {
+          triggerHaptic('medium');
+          hasTriggeredHaptic.current = true;
+        }
+
+        // Prevent scroll when pulling
+        if (delta > 10) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handleTouchEnd = async () => {
+      if (!isPulling.current || disabled) return;
+
+      isPulling.current = false;
+      const currentPullDistance = pullDistance;
+
+      if (currentPullDistance >= THRESHOLD && onRefreshRef.current) {
+        setIsRefreshing(true);
+        triggerHaptic('success');
+
+        try {
+          await onRefreshRef.current();
+        } finally {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          setIsRefreshing(false);
+          setPullDistance(0);
+        }
+      } else {
+        setPullDistance(0);
+      }
+    };
 
     element.addEventListener('touchstart', handleTouchStart, { passive: true });
     element.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -110,7 +107,7 @@ export function usePullToRefresh({
       element.removeEventListener('touchmove', handleTouchMove);
       element.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [disabled, isRefreshing, pullDistance]);
 
   const progress = Math.min(pullDistance / THRESHOLD, 1);
   const isReady = pullDistance >= THRESHOLD;
@@ -119,7 +116,7 @@ export function usePullToRefresh({
     scrollRef,
     pullDistance,
     isRefreshing,
-    isPulling,
+    isPulling: isPulling.current,
     progress,
     isReady,
   };
