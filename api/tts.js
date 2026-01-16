@@ -60,16 +60,11 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ error: 'Failed to generate audio' });
     }
 
-    // Stream the audio response
+    // Return the audio response
     res.setHeader('Content-Type', 'audio/mpeg');
-    
-    const reader = response.body.getReader();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      res.write(Buffer.from(value));
-    }
-    res.end();
+
+    const audioBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(audioBuffer));
 
   } catch (error) {
     console.error('TTS error:', error);
