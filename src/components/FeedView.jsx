@@ -113,10 +113,20 @@ export default function FeedView({ onSelectArticle, onAddFeed, onLogoClick }) {
     disabled: feeds.length === 0,
   });
 
+  const hasSyncedRef = useRef(false);
+
   useEffect(() => {
     refetchFeeds();
     refetchArticles();
   }, [refetchFeeds, refetchArticles]);
+
+  // Auto-sync feeds once when they first load
+  useEffect(() => {
+    if (feeds.length > 0 && !syncing && !hasSyncedRef.current) {
+      hasSyncedRef.current = true;
+      syncAllFeeds();
+    }
+  }, [feeds.length, syncing, syncAllFeeds]);
 
   const articlesWithFeedTitles = useMemo(() => articles.map(article => ({
     ...article,
