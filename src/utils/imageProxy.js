@@ -36,16 +36,18 @@ export function getProxiedImageUrl(url, options = {}) {
 
 /**
  * Get thumbnail URL optimized for card display
+ * Uses 2x size for retina displays
  */
 export function getThumbnailUrl(url) {
-  return getProxiedImageUrl(url, { width: 200, height: 200, quality: 75 });
+  return getProxiedImageUrl(url, { width: 352, height: 352, quality: 80 });
 }
 
 /**
  * Get full-size image URL for article view
+ * Optimized for article hero images
  */
 export function getArticleImageUrl(url) {
-  return getProxiedImageUrl(url, { width: 800, quality: 85 });
+  return getProxiedImageUrl(url, { width: 1200, quality: 90 });
 }
 
 export default {

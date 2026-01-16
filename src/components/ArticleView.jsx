@@ -673,7 +673,7 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
       >
-        <div className="flex items-center justify-around py-2.5 px-6 max-w-md mx-auto">
+        <div className="flex items-center justify-around h-[56px] px-4 max-w-md mx-auto">
           {/* Save button */}
           <motion.button
             onClick={() => {
@@ -682,18 +682,19 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
             }}
             whileTap={{ scale: 0.92 }}
             transition={springQuick}
-            className="flex flex-col items-center gap-1 py-2 px-5 rounded-xl transition-colors"
+            className="flex flex-col items-center justify-center h-[48px] min-w-[56px] px-3 rounded-xl transition-colors"
             style={{
+              gap: '4px',
               background: isSaved ? 'var(--color-tint)' : 'transparent',
               color: isSaved ? 'white' : 'var(--color-label-tertiary)',
             }}
           >
             {Icons.bookmark(isSaved)}
             <span
-              className="text-[10px] font-semibold"
+              className="text-[10px] font-medium"
               style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
-                letterSpacing: '0.02em'
+                lineHeight: 1,
+                letterSpacing: '0.01em'
               }}
             >
               {isSaved ? 'Saved' : 'Save'}
@@ -708,16 +709,17 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
             }}
             whileTap={{ scale: 0.92 }}
             transition={springQuick}
-            className="flex flex-col items-center gap-1 py-2 px-5 rounded-xl transition-colors"
+            className="flex flex-col items-center justify-center h-[48px] min-w-[56px] px-3 rounded-xl transition-colors"
             disabled={summaryLoading}
             style={{
+              gap: '4px',
               background: hasSummary ? 'rgba(191, 90, 242, 0.15)' : 'transparent',
               color: hasSummary ? '#BF5AF2' : 'var(--color-label-tertiary)',
             }}
           >
             {summaryLoading ? (
               <motion.span
-                className="inline-block"
+                className="inline-flex items-center justify-center w-5 h-5"
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
               >
@@ -727,10 +729,10 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
               Icons.summarize
             )}
             <span
-              className="text-[10px] font-semibold"
+              className="text-[10px] font-medium"
               style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
-                letterSpacing: '0.02em'
+                lineHeight: 1,
+                letterSpacing: '0.01em'
               }}
             >
               {hasSummary ? 'Summarized' : 'Summarize'}
@@ -745,14 +747,15 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
             }}
             whileTap={{ scale: 0.92 }}
             transition={springQuick}
-            className="flex flex-col items-center gap-1 py-2 px-5 rounded-xl text-label-tertiary hover:text-[var(--color-tint)] hover:bg-white/5 transition-colors"
+            className="flex flex-col items-center justify-center h-[48px] min-w-[56px] px-3 rounded-xl text-label-tertiary hover:text-[var(--color-tint)] hover:bg-white/5 transition-colors"
+            style={{ gap: '4px' }}
           >
             {Icons.share}
             <span
-              className="text-[10px] font-semibold"
+              className="text-[10px] font-medium"
               style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
-                letterSpacing: '0.02em'
+                lineHeight: 1,
+                letterSpacing: '0.01em'
               }}
             >
               Share
@@ -767,14 +770,15 @@ export default function ArticleView({ article, onClose, onLogoClick }) {
             }}
             whileTap={{ scale: 0.92 }}
             transition={springQuick}
-            className="flex flex-col items-center gap-1 py-2 px-5 rounded-xl text-label-tertiary hover:text-[#30D158] hover:bg-white/5 transition-colors"
+            className="flex flex-col items-center justify-center h-[48px] min-w-[56px] px-3 rounded-xl text-label-tertiary hover:text-[#30D158] hover:bg-white/5 transition-colors"
+            style={{ gap: '4px' }}
           >
             {Icons.external}
             <span
-              className="text-[10px] font-semibold"
+              className="text-[10px] font-medium"
               style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
-                letterSpacing: '0.02em'
+                lineHeight: 1,
+                letterSpacing: '0.01em'
               }}
             >
               Open

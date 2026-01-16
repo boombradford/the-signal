@@ -76,8 +76,11 @@ export default function BottomNav({ activeTab, onTabChange }) {
             <motion.button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className="relative flex flex-col items-center justify-center gap-1 w-full h-full"
-              style={{ color: isActive ? 'var(--color-tint)' : 'var(--color-label-tertiary)' }}
+              className="relative flex flex-col items-center justify-center w-full h-full"
+              style={{
+                color: isActive ? 'var(--color-tint)' : 'var(--color-label-tertiary)',
+                gap: '3px',
+              }}
               whileTap={{ scale: 0.92 }}
               transition={springSnappy}
             >
@@ -89,14 +92,15 @@ export default function BottomNav({ activeTab, onTabChange }) {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       exit={{ scale: 0 }}
-                      className="absolute -top-1 -right-2 min-w-[16px] h-[16px] px-1 bg-[#FF3B30] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm"
+                      className="absolute -top-1 -right-2 min-w-[16px] h-[16px] px-1 bg-[#FF3B30] text-white text-[10px] font-bold rounded-full flex items-center justify-center"
+                      style={{ lineHeight: 1 }}
                     >
                       {tab.badge > 99 ? '99+' : tab.badge}
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-              <span className="text-[10px] font-medium" style={{ letterSpacing: '0.01em' }}>
+              <span className="text-[10px] font-medium" style={{ letterSpacing: '0.01em', lineHeight: 1 }}>
                 {tab.label}
               </span>
             </motion.button>

@@ -200,10 +200,10 @@ const TOPICS = [
   },
 ];
 
-// Slide transition variants
+// Slide transition variants - smoother, less aggressive
 const slideVariants = {
   enter: (direction) => ({
-    x: direction > 0 ? 100 : -100,
+    x: direction > 0 ? 40 : -40,
     opacity: 0
   }),
   center: {
@@ -211,7 +211,7 @@ const slideVariants = {
     opacity: 1
   },
   exit: (direction) => ({
-    x: direction < 0 ? 100 : -100,
+    x: direction < 0 ? 40 : -40,
     opacity: 0
   })
 };
@@ -373,11 +373,12 @@ export default function Onboarding({ onComplete }) {
                     goToStep(1);
                   }}
                   whileTap={{ scale: 0.98 }}
-                  className="relative w-full h-14 px-10 text-[17px] font-semibold text-white rounded-full overflow-hidden"
+                  className="relative w-full h-[52px] px-10 text-[17px] font-semibold text-white rounded-full overflow-hidden flex items-center justify-center"
                   style={{
                     background: 'var(--color-tint)',
                     boxShadow: '0 2px 8px rgba(10, 132, 255, 0.3)',
-                    letterSpacing: '-0.022em'
+                    letterSpacing: '-0.022em',
+                    lineHeight: 1,
                   }}
                 >
                   Get Started
@@ -425,18 +426,20 @@ export default function Onboarding({ onComplete }) {
                         key={topic.id}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05, ...easeApple }}
+                        transition={{ delay: index * 0.03, ...easeApple }}
                         onClick={() => toggleTopic(topic.id)}
                         whileTap={{ scale: 0.97 }}
-                        className="relative p-4 rounded-2xl text-left transition-all duration-200"
+                        className="relative rounded-2xl text-left transition-all duration-200"
                         style={{
+                          padding: '16px',
                           background: isSelected ? `${topic.color}15` : 'var(--color-fill)',
                           boxShadow: isSelected ? `0 0 0 2px ${topic.color}` : 'none',
                         }}
                       >
                         <div
-                          className="mb-3 w-10 h-10 rounded-xl flex items-center justify-center"
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
                           style={{
+                            marginBottom: '12px',
                             background: isSelected ? topic.color : `${topic.color}15`,
                             color: isSelected ? 'white' : topic.color,
                           }}
@@ -444,9 +447,11 @@ export default function Onboarding({ onComplete }) {
                           {topic.icon}
                         </div>
                         <h3
-                          className="relative text-[15px] font-semibold mb-0.5"
+                          className="relative text-[15px] font-semibold"
                           style={{
                             letterSpacing: '-0.016em',
+                            marginBottom: '2px',
+                            lineHeight: 1.2,
                             color: isSelected ? topic.color : 'var(--color-label)',
                           }}
                         >
@@ -454,7 +459,7 @@ export default function Onboarding({ onComplete }) {
                         </h3>
                         <p
                           className="relative text-[12px] text-label-tertiary"
-                          style={{ letterSpacing: '-0.008em' }}
+                          style={{ letterSpacing: '-0.008em', lineHeight: 1.3 }}
                         >
                           {topic.description}
                         </p>
@@ -464,7 +469,7 @@ export default function Onboarding({ onComplete }) {
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center"
+                            className="absolute top-4 right-4 w-5 h-5 rounded-full flex items-center justify-center"
                             style={{
                               background: topic.color,
                               boxShadow: `0 2px 8px ${topic.color}60`,
@@ -483,41 +488,38 @@ export default function Onboarding({ onComplete }) {
 
               {/* Continue button */}
               <div className="pt-4 pb-2">
-                <div className="relative">
-                  <motion.button
-                    onClick={() => {
-                      triggerHaptic('medium');
-                      if (selectedTopics.length > 0) {
-                        // Pre-select all recommended feeds
-                        const allFeedUrls = TOPICS
-                          .filter(t => selectedTopics.includes(t.id))
-                          .flatMap(t => t.feeds.map(f => f.url));
-                        setSelectedFeeds(allFeedUrls);
-                      }
-                      goToStep(2);
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={selectedTopics.length === 0}
-                    className="relative w-full h-14 text-[17px] font-semibold rounded-full disabled:opacity-50 transition-colors"
-                    style={{
-                      background: selectedTopics.length > 0
-                        ? 'var(--color-tint)'
-                        : 'var(--color-fill-secondary)',
-                      boxShadow: selectedTopics.length > 0
-                        ? '0 2px 8px rgba(10, 132, 255, 0.25)'
-                        : 'none',
-                      letterSpacing: '-0.022em',
-                      color: selectedTopics.length > 0 ? 'white' : 'var(--color-label-tertiary)',
-                    }}
-                  >
-                    <span className="relative z-10">
-                      {selectedTopics.length === 0
-                        ? 'Select at least one topic'
-                        : `Continue with ${selectedTopics.length} topic${selectedTopics.length > 1 ? 's' : ''}`
-                      }
-                    </span>
-                  </motion.button>
-                </div>
+                <motion.button
+                  onClick={() => {
+                    triggerHaptic('medium');
+                    if (selectedTopics.length > 0) {
+                      // Pre-select all recommended feeds
+                      const allFeedUrls = TOPICS
+                        .filter(t => selectedTopics.includes(t.id))
+                        .flatMap(t => t.feeds.map(f => f.url));
+                      setSelectedFeeds(allFeedUrls);
+                    }
+                    goToStep(2);
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={selectedTopics.length === 0}
+                  className="relative w-full h-[52px] text-[17px] font-semibold rounded-full disabled:opacity-50 transition-colors flex items-center justify-center"
+                  style={{
+                    background: selectedTopics.length > 0
+                      ? 'var(--color-tint)'
+                      : 'var(--color-fill-secondary)',
+                    boxShadow: selectedTopics.length > 0
+                      ? '0 2px 8px rgba(10, 132, 255, 0.25)'
+                      : 'none',
+                    letterSpacing: '-0.022em',
+                    lineHeight: 1,
+                    color: selectedTopics.length > 0 ? 'white' : 'var(--color-label-tertiary)',
+                  }}
+                >
+                  {selectedTopics.length === 0
+                    ? 'Select at least one topic'
+                    : `Continue with ${selectedTopics.length} topic${selectedTopics.length > 1 ? 's' : ''}`
+                  }
+                </motion.button>
               </div>
             </motion.div>
           )}
@@ -557,20 +559,21 @@ export default function Onboarding({ onComplete }) {
                   {recommendedFeeds.map((feed, index) => (
                     <motion.button
                       key={feed.url}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, ...easeApple }}
+                      transition={{ delay: index * 0.03, ...easeApple }}
                       onClick={() => toggleFeed(feed.url)}
                       whileTap={{ scale: 0.98 }}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all duration-200 ${
+                      className={`w-full flex items-center rounded-xl text-left transition-all duration-200 ${
                         selectedFeeds.includes(feed.url)
                           ? 'bg-[var(--color-tint)]/10 ring-1 ring-[var(--color-tint)]/30'
                           : 'bg-[var(--color-fill)] hover:bg-[var(--color-fill-secondary)]'
                       }`}
+                      style={{ padding: '14px 16px', gap: '14px' }}
                     >
                       {/* Checkbox */}
                       <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                        className={`w-[22px] h-[22px] rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
                           selectedFeeds.includes(feed.url)
                             ? 'bg-[var(--color-tint)]'
                             : 'bg-[var(--color-fill-secondary)] border border-[var(--color-separator)]'
@@ -580,8 +583,8 @@ export default function Onboarding({ onComplete }) {
                           <motion.svg
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            width="14"
-                            height="14"
+                            width="12"
+                            height="12"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="white"
@@ -598,13 +601,13 @@ export default function Onboarding({ onComplete }) {
                       <div className="flex-1 min-w-0">
                         <h3
                           className="text-[15px] font-medium text-label"
-                          style={{ letterSpacing: '-0.016em' }}
+                          style={{ letterSpacing: '-0.016em', lineHeight: 1.2, marginBottom: '2px' }}
                         >
                           {feed.name}
                         </h3>
                         <p
                           className="text-[12px] text-label-tertiary"
-                          style={{ letterSpacing: '-0.008em' }}
+                          style={{ letterSpacing: '-0.008em', lineHeight: 1.2 }}
                         >
                           {feed.topic}
                         </p>
@@ -615,27 +618,27 @@ export default function Onboarding({ onComplete }) {
               </div>
 
               {/* Action buttons */}
-              <div className="pt-4 pb-2 space-y-3">
-                <div className="relative">
-                  <motion.button
-                    onClick={handleComplete}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={subscribing}
-                    className="relative w-full h-14 text-[17px] font-semibold text-white rounded-full disabled:opacity-70 flex items-center justify-center gap-2 overflow-hidden"
-                    style={{
-                      background: 'var(--color-tint)',
-                      boxShadow: '0 2px 8px rgba(10, 132, 255, 0.3)',
-                      letterSpacing: '-0.022em'
-                    }}
-                  >
+              <div className="pt-4 pb-2 space-y-2">
+                <motion.button
+                  onClick={handleComplete}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={subscribing}
+                  className="relative w-full h-[52px] text-[17px] font-semibold text-white rounded-full disabled:opacity-70 flex items-center justify-center overflow-hidden"
+                  style={{
+                    background: 'var(--color-tint)',
+                    boxShadow: '0 2px 8px rgba(10, 132, 255, 0.3)',
+                    letterSpacing: '-0.022em',
+                    lineHeight: 1,
+                  }}
+                >
                   {subscribing ? (
-                    <div className="flex flex-col items-center gap-2 w-full">
+                    <div className="flex flex-col items-center gap-2 w-full px-4">
                       <div className="flex items-center gap-2">
                         <motion.svg
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          width="20"
-                          height="20"
+                          width="18"
+                          height="18"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
@@ -643,7 +646,7 @@ export default function Onboarding({ onComplete }) {
                         >
                           <path d="M21 12a9 9 0 11-6.219-8.56" />
                         </motion.svg>
-                        <span>
+                        <span className="text-[15px]">
                           {progress.total > 0
                             ? `Adding feeds (${progress.current}/${progress.total})`
                             : 'Setting up...'}
@@ -655,18 +658,17 @@ export default function Onboarding({ onComplete }) {
                             className="h-full bg-white"
                             initial={{ width: 0 }}
                             animate={{ width: `${(progress.current / progress.total) * 100}%` }}
-                            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                            transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
                           />
                         </div>
                       )}
                     </div>
-                    ) : selectedFeeds.length > 0 ? (
-                      <span className="relative z-10">{`Add ${selectedFeeds.length} feed${selectedFeeds.length > 1 ? 's' : ''} and start`}</span>
-                    ) : (
-                      <span className="relative z-10">Skip and start empty</span>
-                    )}
-                  </motion.button>
-                </div>
+                  ) : selectedFeeds.length > 0 ? (
+                    `Add ${selectedFeeds.length} feed${selectedFeeds.length > 1 ? 's' : ''} and start`
+                  ) : (
+                    'Skip and start empty'
+                  )}
+                </motion.button>
 
                 {selectedFeeds.length > 0 && (
                   <button
@@ -674,8 +676,8 @@ export default function Onboarding({ onComplete }) {
                       triggerHaptic('light');
                       setSelectedFeeds([]);
                     }}
-                    className="w-full py-2 text-[15px] text-label-secondary hover:text-label transition-colors"
-                    style={{ letterSpacing: '-0.016em' }}
+                    className="w-full h-11 text-[15px] text-label-secondary hover:text-label transition-colors flex items-center justify-center"
+                    style={{ letterSpacing: '-0.016em', lineHeight: 1 }}
                   >
                     Deselect all
                   </button>
@@ -687,8 +689,8 @@ export default function Onboarding({ onComplete }) {
                     triggerHaptic('light');
                     goToStep(1);
                   }}
-                  className="w-full py-2 text-[15px] text-label-tertiary hover:text-label-secondary transition-colors"
-                  style={{ letterSpacing: '-0.016em' }}
+                  className="w-full h-11 text-[15px] text-label-tertiary hover:text-label-secondary transition-colors flex items-center justify-center"
+                  style={{ letterSpacing: '-0.016em', lineHeight: 1 }}
                 >
                   Back to topics
                 </button>
