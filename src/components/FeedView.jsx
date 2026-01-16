@@ -553,8 +553,8 @@ export default function FeedView({ onSelectArticle, onAddFeed, onLogoClick }) {
             </motion.div>
           )}
 
-          {/* Empty articles */}
-          {feeds.length > 0 && !isSearching && articles.length === 0 && (
+          {/* Empty articles - show when no articles at all, or no filtered results */}
+          {feeds.length > 0 && !isSearching && finalArticles.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -584,19 +584,28 @@ export default function FeedView({ onSelectArticle, onAddFeed, onLogoClick }) {
                 className="text-[17px] text-label-secondary mb-4"
                 style={{ letterSpacing: '-0.022em' }}
               >
-                No articles yet
+                {selectedTag === 'FOR_YOU' ? 'No recommendations yet' : 'No articles yet'}
               </p>
-              <motion.button
-                onClick={() => {
-                  triggerHaptic('light');
-                  handleRefresh();
-                }}
-                whileTap={{ scale: 0.98 }}
-                transition={springQuick}
-                className="px-6 py-2.5 text-[15px] font-medium text-[var(--color-tint)] border border-[var(--color-tint)]/30 rounded-full hover:bg-[var(--color-tint)]/10 transition-colors duration-200"
-              >
-                Refresh feeds
-              </motion.button>
+              {selectedTag === 'FOR_YOU' ? (
+                <p
+                  className="text-[15px] text-label-tertiary max-w-[260px]"
+                  style={{ letterSpacing: '-0.016em' }}
+                >
+                  Read or save some articles to get personalized recommendations
+                </p>
+              ) : (
+                <motion.button
+                  onClick={() => {
+                    triggerHaptic('light');
+                    handleRefresh();
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={springQuick}
+                  className="px-6 py-2.5 text-[15px] font-medium text-[var(--color-tint)] border border-[var(--color-tint)]/30 rounded-full hover:bg-[var(--color-tint)]/10 transition-colors duration-200"
+                >
+                  Refresh feeds
+                </motion.button>
+              )}
             </motion.div>
           )}
 
