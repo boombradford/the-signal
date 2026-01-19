@@ -114,7 +114,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             >
               {/* Header */}
               <div
-                className="relative px-6 pt-10 pb-6 text-center"
+                className="relative px-6 pt-8 pb-8 text-center"
                 style={{
                   background: 'transparent'
                 }}
@@ -167,7 +167,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+              <form onSubmit={handleSubmit} className="px-6 pb-8 space-y-4">
                 {/* Email field */}
                 <div>
                   <label htmlFor="auth-email" className="block text-xs font-medium text-label-secondary mb-1.5 uppercase tracking-wide">

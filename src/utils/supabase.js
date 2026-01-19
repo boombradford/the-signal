@@ -88,7 +88,8 @@ export async function getSession() {
 // Get current user ID
 export async function getUserId() {
   const session = await getSession();
-  return session?.user?.id;
+  // Return a default anonymous user ID if no session
+  return session?.user?.id || 'anonymous';
 }
 
 // Check if user is authenticated (non-anonymous)
