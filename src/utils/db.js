@@ -18,12 +18,13 @@ export async function initializeDB() {
 export const feedOperations = {
   async add(feed) {
     const userId = await getUserId();
-    if (!userId) throw new Error('Not authenticated');
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('feeds')
       .insert({
-        user_id: userId,
+        user_id: effectiveUserId,
         url: feed.url,
         title: feed.title,
         description: feed.description,
@@ -71,12 +72,13 @@ export const feedOperations = {
 
   async getAll() {
     const userId = await getUserId();
-    if (!userId) return [];
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('feeds')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', effectiveUserId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -97,12 +99,13 @@ export const feedOperations = {
 
   async getByCategory(categoryId) {
     const userId = await getUserId();
-    if (!userId) return [];
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('feeds')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', effectiveUserId)
       .eq('category', categoryId)
       .order('created_at', { ascending: false });
 
@@ -126,7 +129,8 @@ export const feedOperations = {
 export const articleOperations = {
   async addBulk(articles, feedId) {
     const userId = await getUserId();
-    if (!userId) throw new Error('Not authenticated');
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     // Get existing GUIDs for this feed
     const { data: existing } = await supabase
@@ -141,7 +145,7 @@ export const articleOperations = {
 
     const insertData = newArticles.map(article => ({
       feed_id: feedId,
-      user_id: userId,
+      user_id: effectiveUserId,
       guid: article.guid,
       title: article.title,
       link: article.link,
@@ -177,12 +181,13 @@ export const articleOperations = {
 
   async getAll(limit = 100) {
     const userId = await getUserId();
-    if (!userId) return [];
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('articles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', effectiveUserId)
       .order('pub_date', { ascending: false })
       .limit(limit);
 
@@ -192,12 +197,13 @@ export const articleOperations = {
 
   async getUnread(limit = 100) {
     const userId = await getUserId();
-    if (!userId) return [];
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('articles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', effectiveUserId)
       .eq('is_read', false)
       .order('pub_date', { ascending: false })
       .limit(limit);
@@ -208,12 +214,13 @@ export const articleOperations = {
 
   async getSaved() {
     const userId = await getUserId();
-    if (!userId) return [];
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('articles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', effectiveUserId)
       .eq('is_saved', true)
       .order('pub_date', { ascending: false });
 
@@ -275,12 +282,13 @@ export const articleOperations = {
 
   async getByTag(tag, limit = 100) {
     const userId = await getUserId();
-    if (!userId) return [];
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('articles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', effectiveUserId)
       .eq('primary_tag', tag)
       .order('pub_date', { ascending: false })
       .limit(limit);
@@ -291,12 +299,13 @@ export const articleOperations = {
 
   async getUntagged(limit = 50) {
     const userId = await getUserId();
-    if (!userId) return [];
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('articles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', effectiveUserId)
       .is('primary_tag', null)
       .order('pub_date', { ascending: false })
       .limit(limit);
@@ -308,7 +317,8 @@ export const articleOperations = {
   // Save a clipped article from URL scraping
   async saveClip(article) {
     const userId = await getUserId();
-    if (!userId) throw new Error('Not authenticated');
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     // Generate a unique GUID for clipped articles
     const guid = `clip_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -317,7 +327,7 @@ export const articleOperations = {
       .from('articles')
       .insert({
         feed_id: null, // Clipped articles have no feed
-        user_id: userId,
+        user_id: effectiveUserId,
         guid,
         title: article.title || 'Untitled',
         link: article.url,
@@ -348,12 +358,13 @@ export const articleOperations = {
   // Get all clipped articles (articles without a feed_id)
   async getClips() {
     const userId = await getUserId();
-    if (!userId) return [];
+    // Allow anonymous users with a default user ID
+    const effectiveUserId = userId || 'anonymous';
 
     const { data, error } = await supabase
       .from('articles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', effectiveUserId)
       .is('feed_id', null)
       .order('created_at', { ascending: false });
 

@@ -142,7 +142,7 @@ export default function SettingsView({ onLogoClick, onShowStats }) {
           <div className="glass-card rounded-2xl overflow-hidden">
             {isLoggedIn ? (
               <>
-                <div className="p-4">
+                <div className="p-6">
                   <div className="flex items-center gap-4">
                     {/* Premium Avatar */}
                     <div
@@ -200,8 +200,8 @@ export default function SettingsView({ onLogoClick, onShowStats }) {
                 </div>
               </>
             ) : (
-              <div className="p-4">
-                <div className="flex items-center gap-4 mb-5">
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-6">
                   {/* Guest Avatar */}
                   <div
                     className="relative w-14 h-14 rounded-full p-[2px]"
@@ -247,7 +247,7 @@ export default function SettingsView({ onLogoClick, onShowStats }) {
         </section>
 
         {/* Stats Section - Premium Dashboard */}
-        <section className="px-4 mt-6" aria-labelledby="stats-heading">
+        <section className="px-4 mt-8" aria-labelledby="stats-heading">
           <p className="ios-list-header" id="stats-heading">Statistics</p>
           <div
             className="relative rounded-2xl overflow-hidden"
@@ -382,7 +382,7 @@ export default function SettingsView({ onLogoClick, onShowStats }) {
         </section>
 
         {/* AI Features - Premium Cards */}
-        <section className="px-4 mt-6" aria-labelledby="ai-heading">
+        <section className="px-4 mt-8" aria-labelledby="ai-heading">
           <p className="ios-list-header" id="ai-heading">AI Features</p>
           <div className="space-y-3">
             {/* AI Summaries Card */}
@@ -455,7 +455,7 @@ export default function SettingsView({ onLogoClick, onShowStats }) {
         </section>
 
         {/* Appearance - Premium Theme Selector */}
-        <section className="px-4 mt-6" aria-labelledby="appearance-heading">
+        <section className="px-4 mt-8" aria-labelledby="appearance-heading">
           <p className="ios-list-header" id="appearance-heading">Appearance</p>
           <div className="glass-card rounded-2xl overflow-hidden p-4">
             <p className="text-[13px] text-label-secondary mb-3" style={{ letterSpacing: '-0.01em' }}>Theme</p>
@@ -544,7 +544,7 @@ export default function SettingsView({ onLogoClick, onShowStats }) {
         </section>
 
         {/* About - Premium */}
-        <section className="px-4 mt-6" aria-labelledby="about-heading">
+        <section className="px-4 mt-8" aria-labelledby="about-heading">
           <p className="ios-list-header" id="about-heading">About</p>
           <div className="glass-card rounded-2xl overflow-hidden">
             {/* Version with premium badge */}
@@ -614,7 +614,7 @@ export default function SettingsView({ onLogoClick, onShowStats }) {
         </section>
 
         {/* Danger Zone */}
-        <section className="px-4 mt-6" aria-labelledby="data-heading">
+        <section className="px-4 mt-8" aria-labelledby="data-heading">
           <p className="ios-list-header" id="data-heading">Data</p>
           <div className="glass-card rounded-2xl overflow-hidden">
             <motion.button
