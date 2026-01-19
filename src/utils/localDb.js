@@ -2,10 +2,17 @@ import Dexie from 'dexie';
 
 export const localDb = new Dexie('KevinLocalDB');
 
+// Version 1: Initial schema with highlights and readProgress
+localDb.version(1).stores({
+  highlights: '++id, articleId, createdAt',
+  readProgress: 'articleId, lastPosition, completed',
+});
+
+// Version 2: Add feeds, articles, summaries, settings
 localDb.version(2).stores({
   feeds: '++id, url, createdAt, category',
   articles: '++id, feedId, guid, pubDate, isRead, isSaved, primaryTag',
-  summaries: 'articleId, style',
+  summaries: '[articleId+style], articleId, style',
   highlights: '++id, articleId, createdAt',
   readProgress: 'articleId, lastPosition, completed',
   settings: 'key'
@@ -174,10 +181,8 @@ export const articleOperations = {
   },
 
   async markAllRead(feedId) {
-    const articles = await localDb.articles.where('feedId').equals(feedId).toArray();
-    await Promise.all(
-      articles.map(article => localDb.articles.update(article.id, { isRead: true }))
-    );
+    // Use bulk modify for better performance
+    await localDb.articles.where('feedId').equals(feedId).modify({ isRead: true });
     return true;
   },
 
@@ -284,8 +289,8 @@ export const summaryOperations = {
   async save(articleId, content, style = 'concise', model = 'claude-3-haiku') {
     await localDb.summaries.put({
       articleId,
-      content,
       style,
+      content,
       model,
       createdAt: new Date().toISOString()
     });
@@ -293,7 +298,8 @@ export const summaryOperations = {
   },
 
   async get(articleId, style = 'concise') {
-    const summary = await localDb.summaries.get(articleId);
+    // Use compound key to retrieve by both articleId and style
+    const summary = await localDb.summaries.get([articleId, style]);
     return summary || null;
   }
 };
