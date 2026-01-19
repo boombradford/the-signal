@@ -193,15 +193,21 @@ export function useCategories() {
   };
 }
 
-// Settings hook (using localStorage)
+// Settings hook
 export function useSettings() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadSettings = async () => {
-      const theme = await settingsOperations.get('theme') || 'system';
-      setSettings({ theme });
+      try {
+        const allSettings = await settingsOperations.getAll();
+        setSettings(allSettings);
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+        // Use defaults on error
+        setSettings({ viewDensity: 'comfortable', theme: 'dark' });
+      }
       setLoading(false);
     };
 
@@ -209,12 +215,21 @@ export function useSettings() {
   }, []);
 
   const updateSetting = useCallback(async (key, value) => {
-    await settingsOperations.set(key, value);
-    setSettings(prev => ({ ...prev, [key]: value }));
+    try {
+      await settingsOperations.set(key, value);
+      setSettings(prev => ({ ...prev, [key]: value }));
+    } catch (err) {
+      console.error('Failed to update setting:', err);
+    }
   }, []);
 
   const getSetting = useCallback(async (key) => {
-    return await settingsOperations.get(key);
+    try {
+      return await settingsOperations.get(key);
+    } catch (err) {
+      console.error('Failed to get setting:', err);
+      return null;
+    }
   }, []);
 
   return {
